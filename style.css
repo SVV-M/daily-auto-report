@@ -276,7 +276,11 @@ img { max-width: 100%; }
   cursor: pointer; transition: all var(--t-fast);
   margin-bottom: 3px; font-size: var(--fs-sm); color: var(--c-text-secondary);
   user-select: none; font-weight: 500;
+}
+/* 维度名文字：强制单行，超出省略 */
+.category-item > span:nth-child(2) {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  flex: 1; min-width: 0;
 }
 .category-item:hover {
   background: var(--c-surface-hover); color: var(--c-text);
@@ -299,6 +303,7 @@ img { max-width: 100%; }
   margin-left: auto; font-size: var(--fs-xs); font-weight: 600;
   background: var(--c-border-light); padding: 2px 10px; border-radius: var(--r-full);
   color: var(--c-text-muted); font-variant-numeric: tabular-nums;
+  flex-shrink: 0; white-space: nowrap;
 }
 .category-item.active .category-count {
   background: var(--c-primary-bg); color: var(--c-primary);
