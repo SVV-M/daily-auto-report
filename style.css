@@ -251,7 +251,7 @@ img { max-width: 100%; }
 
 /* --- 侧边栏 - 更有质感 --- */
 .sidebar {
-  width: 300px; flex-shrink: 0;
+  width: 320px; flex-shrink: 0;
   position: sticky; top: 96px; align-self: flex-start;
   background: var(--g-surface);
   backdrop-filter: blur(20px) saturate(180%);
