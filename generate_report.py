@@ -15,7 +15,10 @@
 
 DeepSeek联网搜索原理：
   调用 https://api.deepseek.com/anthropic/v1/messages 端点，
-  传入 tools=[{"type": "web_search"}]，DeepSeek自动联网搜索并返回结构化结果。
+  传入 tools=[{"type": "web_search_20250305", "name": "web_search"}]，
+  DeepSeek自动联网搜索并返回结构化结果。
+  注意：type必须使用版本化名称(web_search_20250305或web_search_20260209)，
+  不能用裸名"web_search"，否则HTTP 400报错。
   搜索消耗约3倍标准token。
 """
 
@@ -90,7 +93,7 @@ def search_with_deepseek_websearch(query, num_results=5):
         }, json={
             "model": model,
             "max_tokens": 4096,
-            "tools": [{"type": "web_search"}],
+            "tools": [{"type": "web_search_20250305", "name": "web_search"}],
             "messages": [
                 {
                     "role": "user",
