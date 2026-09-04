@@ -8,9 +8,15 @@
 1. LLM增强模式：使用OpenAI兼容API生成STAR/PDCA深度分析（推荐）
 2. 纯搜索模式：仅基于搜索结果生成简要报告（无需LLM API Key）
 
-搜索API支持：
-- SerpAPI (https://serpapi.com) - 100次/月免费
-- NewsAPI (https://newsapi.org) - 开发者免费100次/天
+搜索API支持（按优先级）：
+1. DeepSeek联网搜索（Anthropic端点）- 仅需LLM_API_KEY，搜索+分析一体化（推荐）
+2. SerpAPI (https://serpapi.com) - 100次/月免费（需SERPAPI_KEY）
+3. NewsAPI (https://newsapi.org) - 开发者免费100次/天（需NEWS_API_KEY）
+
+DeepSeek联网搜索原理：
+  调用 https://api.deepseek.com/anthropic/v1/messages 端点，
+  传入 tools=[{"type": "web_search"}]，DeepSeek自动联网搜索并返回结构化结果。
+  搜索消耗约3倍标准token。
 """
 
 import json
@@ -26,29 +32,126 @@ SITE_DIR = Path(".")  # GitHub Actions 工作目录即为仓库根
 REPORTS_DIR = SITE_DIR / "reports"
 DATA_JS_PATH = SITE_DIR / "data.js"
 
-# 7大维度定义
+# 7大维度定义（汽车行业用户运营视角）
 CATEGORIES = [
-    {"id": "marketing-copy", "name": "营销文案", "color": "#6366f1", "icon": "✍️"},
-    {"id": "offline-events", "name": "线下活动", "color": "#f59e0b", "icon": "🎪"},
-    {"id": "koc-ops",       "name": "KOC运营",  "color": "#10b981", "icon": "👥"},
-    {"id": "auto-marketing", "name": "汽车营销", "color": "#3b82f6", "icon": "🚗"},
-    {"id": "emotional-econ", "name": "情绪经济", "color": "#ec4899", "icon": "💫"},
-    {"id": "user-growth",   "name": "用户增长",  "color": "#8b5cf6", "icon": "📈"},
-    {"id": "brand-building", "name": "品牌建设", "color": "#14b8a6", "icon": "🏗️"},
+    {"id": "brand-marketing",    "name": "汽车营销与品牌传播", "color": "#6366f1", "icon": "🚗"},
+    {"id": "user-growth",        "name": "用户运营与私域增长", "color": "#f59e0b", "icon": "🎯"},
+    {"id": "offline-experience", "name": "线下体验与场景运营", "color": "#10b981", "icon": "🎪"},
+    {"id": "digital-content",    "name": "数字化与内容生态", "color": "#3b82f6", "icon": "📱"},
+    {"id": "crossover-eco",      "name": "跨界与生态联动",   "color": "#ec4899", "icon": "🔄"},
+    {"id": "industry-trend",     "name": "行业趋势与对标洞察", "color": "#8b5cf6", "icon": "📊"},
+    {"id": "emotion-economy",    "name": "情绪经济与情感价值", "color": "#14b8a6", "icon": "💜"},
 ]
 
-# 每个维度的搜索关键词
+# 每个维度的搜索关键词（使用新闻热点词汇，便于搜索引擎匹配）
 DIMENSION_QUERIES = {
-    "marketing-copy": "汽车 营销文案 品牌传播 2026",
-    "offline-events": "汽车 线下活动 快闪店 试驾 2026",
-    "koc-ops":       "汽车 KOC 种草 用户运营 2026",
-    "auto-marketing": "汽车营销 新能源 代言 破圈 2026",
-    "emotional-econ": "汽车 情绪价值 品牌情感 用户社区 2026",
-    "user-growth":   "汽车 用户增长 裂变 私域 会员 2026",
-    "brand-building": "汽车 品牌建设 品牌升级 视觉 2026",
+    "brand-marketing":    "汽车 营销 品牌 新品上市 营销文案 2026",
+    "user-growth":        "汽车 用户运营 私域 KOC 车主社区 会员体系 2026",
+    "offline-experience": "汽车 试驾 车主活动 车友会 快闪店 交付仪式 2026",
+    "digital-content":    "汽车 短视频 直播 智能座舱 AIGC 数据运营 2026",
+    "crossover-eco":      "汽车 跨界联名 异业合作 IP营销 生活方式 2026",
+    "industry-trend":     "汽车 新能源 出海 政策补贴 用户代际 2026",
+    "emotion-economy":    "汽车 情绪价值 情感营销 品牌人设 治愈体验 2026",
 }
 
 # ============ 搜索模块 ============
+def search_with_deepseek_websearch(query, num_results=5):
+    """使用DeepSeek Anthropic端点的联网搜索功能（优先方案）
+
+    DeepSeek的Anthropic兼容端点支持 server_tool_use / web_search_tool_result，
+    通过 tools=[{"type": "web_search"}] 让模型自动联网搜索并返回结构化结果。
+    搜索+分析一体化，无需额外搜索API Key。
+
+    注意：搜索消耗约3倍标准token（DeepSeek官方说明）
+    """
+    try:
+        import requests
+        api_key = os.environ.get("LLM_API_KEY") or os.environ.get("OPENAI_API_KEY")
+        if not api_key:
+            return []
+
+        # DeepSeek Anthropic兼容端点
+        api_base = os.environ.get("LLM_API_BASE", "https://api.deepseek.com")
+        # 自动推导Anthropic端点：如果用户配置的是OpenAI端点，替换为Anthropic端点
+        if "/anthropic" not in api_base:
+            # 去掉末尾 /v1 等路径，拼接 /anthropic
+            base = re.sub(r'/v\d+/?$', '', api_base.rstrip('/'))
+            anthropic_url = f"{base}/anthropic/v1/messages"
+        else:
+            anthropic_url = f"{api_base.rstrip('/')}/v1/messages"
+
+        model = os.environ.get("LLM_MODEL", "deepseek-chat")
+
+        # Anthropic Messages API 格式
+        resp = requests.post(anthropic_url, headers={
+            "x-api-key": api_key,
+            "anthropic-version": "2023-06-01",
+            "Content-Type": "application/json",
+        }, json={
+            "model": model,
+            "max_tokens": 4096,
+            "tools": [{"type": "web_search"}],
+            "messages": [
+                {
+                    "role": "user",
+                    "content": f"请搜索以下主题的最新中文新闻，返回{num_results}条最相关的结果，每条包含标题、来源URL和摘要：\n\n{query}"
+                }
+            ],
+        }, timeout=60)
+
+        if resp.status_code != 200:
+            print(f"  ⚠️ DeepSeek联网搜索HTTP {resp.status_code}: {resp.text[:200]}")
+            return []
+
+        data = resp.json()
+        results = []
+
+        # 解析Anthropic Messages响应
+        # 搜索结果在 content block 中，type="web_search_tool_result"
+        content_blocks = data.get("content", [])
+        search_result_text = ""
+        assistant_text = ""
+
+        for block in content_blocks:
+            if block.get("type") == "text":
+                assistant_text += block.get("text", "")
+            # web_search_tool_result 包含搜索引擎返回的原始结果
+            if block.get("type") == "web_search_tool_result":
+                search_content = block.get("content", {})
+                if isinstance(search_content, dict):
+                    # 提取搜索结果
+                    for result_item in search_content.get("results", []):
+                        results.append({
+                            "title": result_item.get("title", ""),
+                            "url": result_item.get("url", ""),
+                            "snippet": result_item.get("snippet", ""),
+                        })
+
+        # 如果没有从 web_search_tool_result 提取到结构化结果，
+        # 尝试从助手文本回复中解析（模型通常会在文本中引用搜索结果）
+        if not results and assistant_text:
+            # 尝试从文本中提取URL和标题
+            url_pattern = r'https?://[^\s<>"\')\]]+'
+            urls = re.findall(url_pattern, assistant_text)
+            # 按行分割，尝试提取标题
+            lines = [l.strip() for l in assistant_text.split('\n') if l.strip()]
+            for i, line in enumerate(lines[:num_results]):
+                # 去除序号前缀
+                clean_line = re.sub(r'^[\d]+[.、)\s]+', '', line)
+                if clean_line and len(clean_line) > 5:
+                    url = urls[i] if i < len(urls) else ""
+                    results.append({
+                        "title": clean_line[:100],
+                        "url": url,
+                        "snippet": "",
+                    })
+
+        return results[:num_results]
+    except Exception as e:
+        print(f"  ⚠️ DeepSeek联网搜索失败: {e}")
+        return []
+
+
 def search_with_serpapi(query, num_results=5):
     """使用SerpAPI搜索"""
     try:
@@ -109,16 +212,29 @@ def search_with_newsapi(query, num_results=5):
 
 
 def search_news_for_dimension(dim_id, query):
-    """按维度搜索新闻，优先SerpAPI，回退NewsAPI"""
+    """按维度搜索新闻，优先DeepSeek联网搜索，回退SerpAPI，再回退NewsAPI"""
     print(f"  🔍 搜索维度: {dim_id} ...")
-    results = search_with_serpapi(query, num_results=5)
-    if not results:
-        results = search_with_newsapi(query, num_results=5)
+
+    # 优先：DeepSeek联网搜索（仅需LLM_API_KEY，无需额外Key）
+    results = search_with_deepseek_websearch(query, num_results=5)
     if results:
-        print(f"    ✅ 找到 {len(results)} 条结果")
-    else:
-        print(f"    ⚠️ 未找到结果")
-    return results
+        print(f"    ✅ DeepSeek联网搜索找到 {len(results)} 条结果")
+        return results
+
+    # 回退1：SerpAPI（需要SERPAPI_KEY）
+    results = search_with_serpapi(query, num_results=5)
+    if results:
+        print(f"    ✅ SerpAPI找到 {len(results)} 条结果")
+        return results
+
+    # 回退2：NewsAPI（需要NEWS_API_KEY）
+    results = search_with_newsapi(query, num_results=5)
+    if results:
+        print(f"    ✅ NewsAPI找到 {len(results)} 条结果")
+        return results
+
+    print(f"    ⚠️ 所有搜索源均未找到结果")
+    return []
 
 
 # ============ LLM增强模块 ============
@@ -459,10 +575,15 @@ def update_data_js(date_str, new_cases):
 
     content = DATA_JS_PATH.read_text(encoding="utf-8")
 
-    # 检查是否已有该日期的数据
-    if f"date: '{date_str}'" in content or f'date: "{date_str}"' in content:
-        print(f"  ℹ️ data.js 已包含 {date_str} 的数据，跳过追加")
-        return
+    # 检查是否已有该日期的数据，如有则先移除旧数据再追加新的
+    date_pattern = f"date: '{date_str}'"
+    date_pattern2 = f'date: "{date_str}"'
+    if date_pattern in content or date_pattern2 in content:
+        print(f"  ℹ️ data.js 已包含 {date_str} 的数据，将移除旧数据后重新追加")
+        # 移除该日期的整个报告条目（从 { 到 },）
+        # 匹配包含该日期的整个对象
+        old_entry_pattern = r',?\s*\{[^}]*date:\s*[\'"]' + re.escape(date_str) + r'[\'"][^}]*\}'
+        content = re.sub(old_entry_pattern, '', content, flags=re.DOTALL)
 
     # 构建新报告条目
     summary_parts = []
@@ -524,12 +645,11 @@ def main():
     print(f"🚀 开始生成 {today} 日报...")
     print(f"{'='*50}")
 
-    # 检查是否已有该日期的报告
+    # 检查是否已有该日期的报告，如有则覆盖重新生成
     report_path = REPORTS_DIR / f"{today}.html"
     if report_path.exists():
-        print(f"ℹ️ {today} 的报告已存在，跳过生成")
-        print(f"  如需重新生成，请先删除 {report_path}")
-        return
+        print(f"ℹ️ {today} 的报告已存在，将覆盖重新生成")
+        report_path.unlink()  # 删除旧文件
 
     # 1. 搜索各维度新闻
     print("\n📡 第1步：搜索行业新闻...")
