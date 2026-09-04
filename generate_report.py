@@ -118,17 +118,43 @@ def search_with_deepseek_websearch(query, num_results=5):
         for block in content_blocks:
             if block.get("type") == "text":
                 assistant_text += block.get("text", "")
+            # 跳过搜索请求block（server_tool_use）
+            if block.get("type") == "server_tool_use":
+                continue
             # web_search_tool_result 包含搜索引擎返回的原始结果
             if block.get("type") == "web_search_tool_result":
                 search_content = block.get("content", {})
+                # P0修复：处理content为字符串的情况（DeepSeek有时返回JSON字符串而非dict）
+                if isinstance(search_content, str):
+                    try:
+                        search_content = json.loads(search_content)
+                    except (json.JSONDecodeError, TypeError):
+                        # JSON解析失败，将整段文本作为单条结果
+                        results.append({
+                            "title": "",
+                            "url": "",
+                            "snippet": search_content[:500],
+                        })
+                        search_content = {}
+
                 if isinstance(search_content, dict):
-                    # 提取搜索结果
+                    # 提取搜索结果（标准路径：content.results数组）
                     for result_item in search_content.get("results", []):
                         results.append({
                             "title": result_item.get("title", ""),
                             "url": result_item.get("url", ""),
                             "snippet": result_item.get("snippet", ""),
                         })
+                    # 兜底：DeepSeek有时把单条结果放在block顶层
+                    if not results:
+                        block_title = block.get("title", "")
+                        block_url = block.get("url", "")
+                        if block_title or block_url:
+                            results.append({
+                                "title": block_title,
+                                "url": block_url,
+                                "snippet": block.get("snippet", ""),
+                            })
 
         # 如果没有从 web_search_tool_result 提取到结构化结果，
         # 尝试从助手文本回复中解析（模型通常会在文本中引用搜索结果）
@@ -307,41 +333,203 @@ def generate_case_with_llm(dim_info, search_results):
     return None
 
 
+def _clean_llm_title(raw_title):
+    """P1修复：清洗LLM搜索原文中的前缀和无关内容"""
+    if not raw_title:
+        return ""
+    # 过滤LLM前缀模式
+    llm_prefixes = [
+        r'^我将为您搜索关于.*?[。.，,]\s*',
+        r'^让我为您搜索.*?[。.，,]\s*',
+        r'^以下是关于.*?[：:]\s*',
+        r'^根据搜索结果[，,]\s*',
+        r'^好的[，,]\s*',
+        r'^关于.*?[，,]\s*',
+    ]
+    cleaned = raw_title
+    for pattern in llm_prefixes:
+        cleaned = re.sub(pattern, '', cleaned, flags=re.IGNORECASE)
+    # 去除首尾空白和引号
+    cleaned = cleaned.strip().strip('"\'""''')
+    # 如果清洗后过短或仍含LLM痕迹，返回截断原文
+    if len(cleaned) < 5 or cleaned.startswith('我将') or cleaned.startswith('让我'):
+        # 取原文前30字作为兜底标题
+        cleaned = raw_title[:30].rstrip() + ("..." if len(raw_title) > 30 else "")
+    return cleaned
+
+
+def _extract_brand_from_text(text, known_brands):
+    """P1修复：从文本中提取品牌名"""
+    for b in known_brands:
+        if b in text:
+            return b
+    return ""
+
+
+def _extract_brand_from_url(url):
+    """P1修复：从URL中提取品牌线索"""
+    brand_url_map = {
+        "nio": "蔚来", "xpeng": "小鹏", "lixiang": "理想", "byd": "比亚迪",
+        "zeekr": "极氪", "wenjie": "问界", "lynkco": "领克", "xiaomi": "小米",
+        "tesla": "特斯拉", "volvo": "沃尔沃", "bmw": "宝马", "mercedes": "奔驰",
+        "audi": "奥迪", "toyota": "丰田", "honda": "本田", "vw": "大众",
+        "geely": "吉利", "chery": "奇瑞", "gwm": "长城", "saic": "上汽",
+        "voyah": "岚图", "im": "智己", "avatr": "阿维塔", "jiyue": "极越",
+    }
+    url_lower = url.lower()
+    for key, brand in brand_url_map.items():
+        if key in url_lower:
+            return brand
+    return ""
+
+
+def _extract_metrics_from_text(text):
+    """P1修复：从文本中正则提取数值指标"""
+    metrics = []
+    # 匹配"提升X%"、"增长X%"、"降低X%"等模式
+    pct_patterns = [
+        (r'(?:提升|增长|增加|提高|上涨)[了]?(\d+(?:\.\d+)?)%', '增长率'),
+        (r'(?:降低|下降|减少|缩减)[了]?(\d+(?:\.\d+)?)%', '降幅'),
+        (r'(\d+(?:\.\d+)?)%\s*(?:↑|→|至)\s*(\d+(?:\.\d+)?)%', '变化幅度'),
+    ]
+    for pattern, label in pct_patterns:
+        matches = re.findall(pattern, text)
+        for m in matches[:2]:  # 每种模式最多取2个
+            if isinstance(m, tuple):
+                metrics.append({"label": label, "value": f"{m[0]}%→{m[1]}%"})
+            else:
+                metrics.append({"label": label, "value": f"+{m}%"})
+
+    # 匹配具体数值："X万元"、"X亿"、"X万"
+    amount_patterns = [
+        (r'(\d+(?:\.\d+)?)\s*万[元人]', '规模'),
+        (r'(\d+(?:\.\d+)?)\s*亿', '规模'),
+    ]
+    for pattern, label in amount_patterns:
+        matches = re.findall(pattern, text)
+        for m in matches[:2]:
+            if len(metrics) < 4:  # metrics总数上限4
+                metrics.append({"label": label, "value": m})
+
+    return metrics[:4]  # 最多4个指标
+
+
+# 维度→增长模式映射
+CATEGORY_TYPE_MAP = {
+    "brand-marketing":    "品牌事件驱动型传播",
+    "user-growth":        "私域运营驱动型增长",
+    "offline-experience": "场景体验驱动型转化",
+    "digital-content":    "内容生态驱动型破圈",
+    "crossover-eco":      "跨界联动驱动型裂变",
+    "industry-trend":     "趋势洞察驱动型对标",
+    "emotion-economy":    "情绪价值驱动型共鸣",
+}
+
+
+def _clean_summary_text(cases_data, max_chars=200):
+    """P3修复：生成精炼摘要，格式：每维度一句"品牌+动作+关键数据"，总字数≤max_chars"""
+    parts = []
+    for case in cases_data:
+        brand = case.get("brand", "")
+        if brand in ("待补充", "（待确认）", ""):
+            brand = ""
+        title = _clean_llm_title(case.get("title", ""))
+        # 从metrics中提取关键数据点
+        metrics = case.get("metrics", [])
+        metric_str = ""
+        if metrics:
+            metric_str = "，".join([f"{m['label']}{m['value']}" for m in metrics[:2]])
+
+        # 组装：品牌+标题关键词+数据
+        if brand:
+            segment = brand + title[:20]
+        else:
+            segment = title[:25]
+        if metric_str:
+            segment += f"（{metric_str}）"
+        parts.append(segment)
+
+    summary = "今日精选7大维度案例：" + "、".join(parts[:7])
+    # 截断至max_chars
+    if len(summary) > max_chars:
+        summary = summary[:max_chars - 3] + "..."
+    return summary
+
+
 def build_simple_case(dim_info, search_results, date_str):
-    """无LLM时，基于搜索结果构建简要案例"""
+    """无LLM时，基于搜索结果构建简要案例（P1增强版：title/brand/type/sections/metrics兜底）"""
     if not search_results:
         return None
 
     best = search_results[0]
-    title = best["title"]
-    brand = "待补充"
-    snippet = best["snippet"] or "暂无详细描述"
+    raw_title = best.get("title", "")
+    snippet = best.get("snippet", "") or "暂无详细描述"
+    url = best.get("url", "")
 
-    # 尝试从标题提取品牌名
+    # P1修复1：title清洗——过滤LLM前缀
+    title = _clean_llm_title(raw_title)
+    # 如果清洗后title为空或仍像LLM原文，用snippet前30字兜底
+    if not title or len(title) < 5:
+        title = snippet[:30].rstrip() + ("..." if len(snippet) > 30 else "")
+
+    # P1修复2：brand提取——从title+snippet识别，再从URL提取
     known_brands = ["蔚来", "小鹏", "理想", "比亚迪", "极氪", "问界", "领克",
                     "小米", "上汽", "广汽", "吉利", "长城", "奇瑞", "宝马", "奔驰",
-                    "大众", "丰田", "本田", "特斯拉", "极越", "岚图", "智己", "阿维塔"]
-    for b in known_brands:
-        if b in title:
-            brand = b
-            break
+                    "大众", "丰田", "本田", "特斯拉", "极越", "岚图", "智己", "阿维塔",
+                    "华为", "赛力斯", "极狐", "零跑", "合创", "飞凡", "smart"]
+    brand = _extract_brand_from_text(title + snippet, known_brands)
+    if not brand:
+        brand = _extract_brand_from_url(url)
+    if not brand:
+        brand = "（待确认）"
 
+    # P1修复3：type映射——从category映射到增长模式描述
+    dim_id = dim_info.get("id", "")
+    case_type = CATEGORY_TYPE_MAP.get(dim_id, f"{dim_info['name']}动态")
+
+    # P1修复4：sections增强——至少2段有业务价值的内容
     sections = [
-        {"label": "新闻概要", "content": snippet},
-        {"label": "信息来源", "content": f"原标题：{title}。详细内容请访问原文链接。"},
+        {"label": "情境 (Situation)", "content": snippet},
     ]
 
-    # 如果有多条搜索结果，合并为行业动态
+    # 第二段：关键发现或行业背景
     if len(search_results) > 1:
-        other_titles = "\n".join([f"· {r['title']}" for r in search_results[1:4]])
-        sections.append({"label": "同维度动态", "content": other_titles})
+        other_findings = []
+        for r in search_results[1:4]:
+            r_title = _clean_llm_title(r.get("title", ""))
+            r_snippet = r.get("snippet", "")
+            if r_snippet:
+                other_findings.append(f"· {r_snippet[:80]}")
+            elif r_title:
+                other_findings.append(f"· {r_title}")
+        if other_findings:
+            sections.append({
+                "label": "行动 (Action)",
+                "content": "同维度相关动态：\n" + "\n".join(other_findings),
+            })
+
+    # 确保至少2段
+    if len(sections) < 2:
+        sections.append({
+            "label": "信息来源",
+            "content": f"原标题：{raw_title}。详细内容请访问原文链接。",
+        })
+
+    # P1修复5：metrics提取——从snippet中正则提取数值指标
+    metrics = _extract_metrics_from_text(snippet)
+    # 补充：从其他搜索结果的snippet中也提取
+    for r in search_results[1:3]:
+        extra_metrics = _extract_metrics_from_text(r.get("snippet", ""))
+        for m in extra_metrics:
+            if len(metrics) < 4 and m["label"] not in [existing["label"] for existing in metrics]:
+                metrics.append(m)
 
     return {
         "title": title,
         "brand": brand,
-        "type": f"{dim_info['name']}行业动态",
+        "type": case_type,
         "sections": sections,
-        "metrics": [],
+        "metrics": metrics,
     }
 
 
@@ -352,15 +540,8 @@ def generate_report_html(date_str, cases_data):
     # 构建案例JS数据
     cases_js = json.dumps(cases_data, ensure_ascii=False, indent=4)
 
-    # 构建摘要
-    summary_parts = []
-    for case in cases_data:
-        cat_id = case.get("category", "")
-        cat_info = next((c for c in CATEGORIES if c["id"] == cat_id), None)
-        if cat_info:
-            summary_parts.append(f"{cat_info['icon']}{case['title']}")
-
-    summary_text = "、".join(summary_parts[:7]) if summary_parts else "今日案例报告已生成"
+    # P3修复：使用清洗后的精炼摘要
+    summary_text = _clean_summary_text(cases_data)
 
     html = f"""<!-- AI生成 -->
 <!DOCTYPE html>
@@ -447,6 +628,8 @@ def generate_report_html(date_str, cases_data):
     .case-cat {{ font-size: 14px; font-weight: 700; padding: 5px 14px; border-radius: 24px; white-space: nowrap; }}
     .case-title {{ font-size: 22px; font-weight: 800; flex: 1; letter-spacing: -0.02em; line-height: 1.3; }}
     .case-brand {{ font-size: 15px; color: var(--c-text2); margin-bottom: 16px; font-weight: 500; }}
+    .bookmark-btn {{ font-size: 20px; padding: 4px 8px; border-radius: 8px; color: var(--c-accent); transition: all 0.2s ease; flex-shrink: 0; }}
+    .bookmark-btn:hover {{ background: rgba(245,158,11,0.12); transform: scale(1.15); }}
     .case-section {{ margin-bottom: 16px; }}
     .case-section h4 {{ font-size: 14px; font-weight: 700; color: var(--c-primary); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }}
     .case-section h4::before {{ content: ''; width: 3px; height: 14px; background: var(--c-primary); border-radius: 2px; }}
@@ -524,6 +707,25 @@ def generate_report_html(date_str, cases_data):
       }});
     }}
 
+    // P2修复：收藏功能（localStorage持久化）
+    function getBookmarks() {{
+      try {{ return JSON.parse(localStorage.getItem('case-bookmarks') || '[]'); }} catch {{ return []; }}
+    }}
+    function toggleBookmark(caseId) {{
+      const bm = getBookmarks();
+      const idx = bm.indexOf(caseId);
+      if (idx === -1) {{ bm.push(caseId); showToast('⭐ 已收藏'); }}
+      else {{ bm.splice(idx, 1); showToast('取消收藏'); }}
+      localStorage.setItem('case-bookmarks', JSON.stringify(bm));
+      renderCases();
+    }}
+    function showToast(msg) {{
+      const t = $('#toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 1800);
+    }}
+
     function renderCases() {{
       const container = $('#cases-container');
       let cases = CASES;
@@ -531,12 +733,14 @@ def generate_report_html(date_str, cases_data):
       const empty = $('#empty-state');
       if (cases.length === 0) {{ container.innerHTML = ''; empty.style.display = 'block'; return; }}
       empty.style.display = 'none';
+      const bookmarks = getBookmarks();
       container.innerHTML = cases.map((c, i) => {{
         const cat = CATEGORIES.find(ct => ct.id === c.category);
         if (!cat) return '';
+        const isBm = bookmarks.includes(c.id);
         const sectionsHtml = (c.sections || []).map(s => `<div class="case-section"><h4>${{s.label}}</h4><p>${{s.content}}</p></div>`).join('');
         const metricsHtml = (c.metrics || []).map(m => `<span class="metric">${{m.label}} <strong>${{m.value}}</strong></span>`).join('');
-        return `<div class="case" style="animation-delay:${{i * 60}}ms"><div class="case-header"><span class="case-cat" style="background:${{cat.color}}18;color:${{cat.color}}">${{cat.icon}} ${{cat.name}}</span><span class="case-title">${{c.title}}</span></div><p class="case-brand">品牌：${{c.brand}} | 类型：${{c.type}}</p>${{sectionsHtml}}${{metricsHtml ? `<div class="case-metrics">${{metricsHtml}}</div>` : ''}}</div>`;
+        return `<div class="case" style="animation-delay:${{i * 60}}ms"><div class="case-header"><span class="case-cat" style="background:${{cat.color}}18;color:${{cat.color}}">${{cat.icon}} ${{cat.name}}</span><span class="case-title">${{c.title}}</span><button class="bookmark-btn" onclick="toggleBookmark('${{c.id}}')" title="${{isBm ? '取消收藏' : '收藏'}}">${{isBm ? '⭐' : '☆'}}</button></div><p class="case-brand">品牌：${{c.brand}} | 类型：${{c.type}}</p>${{sectionsHtml}}${{metricsHtml ? `<div class="case-metrics">${{metricsHtml}}</div>` : ''}}</div>`;
       }}).join('');
       let info = `共 ${{cases.length}} 个案例`;
       if (state.activeDim !== '__all__') {{
@@ -556,6 +760,9 @@ def generate_report_html(date_str, cases_data):
         html.setAttribute('data-theme', next);
         localStorage.setItem('report-theme', next);
       }});
+      // P2修复：暴露收藏/Toast到全局作用域（onclick内联调用需要）
+      window.toggleBookmark = toggleBookmark;
+      window.showToast = showToast;
       renderDimTabs();
       renderCases();
     }}
@@ -656,14 +863,8 @@ def update_data_js(date_str, new_cases):
         print(f"  ℹ️ data.js 已包含 {date_str} 的数据，将移除旧数据后重新追加")
         content = _remove_report_entry_by_date(content, date_str)
 
-    # 构建新报告条目
-    summary_parts = []
-    for case in new_cases:
-        cat_id = case.get("category", "")
-        cat_info = next((c for c in CATEGORIES if c["id"] == cat_id), None)
-        if cat_info:
-            summary_parts.append(f"{cat_info['icon']}{case['title']}")
-    summary = "今日精选7大维度案例：" + "、".join(summary_parts[:7]) if summary_parts else "今日案例报告"
+    # P3修复：使用清洗后的精炼摘要
+    summary = _clean_summary_text(new_cases)
 
     new_report = {
         "date": date_str,
