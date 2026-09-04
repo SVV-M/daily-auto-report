@@ -7,13 +7,13 @@
 
 const REPORT_DATA = {
   categories: [
-    { id: 'marketing-copy', name: '营销文案', color: '#6366f1', icon: '✍️' },
-    { id: 'offline-events', name: '线下活动', color: '#f59e0b', icon: '🎪' },
-    { id: 'koc-ops',       name: 'KOC运营',  color: '#10b981', icon: '👥' },
-    { id: 'auto-marketing', name: '汽车营销', color: '#3b82f6', icon: '🚗' },
-    { id: 'emotional-econ', name: '情绪经济', color: '#ec4899', icon: '💫' },
-    { id: 'user-growth',   name: '用户增长',  color: '#8b5cf6', icon: '📈' },
-    { id: 'brand-building', name: '品牌建设', color: '#14b8a6', icon: '🏗️' }
+    { id: 'brand-marketing',    name: '汽车营销与品牌传播', color: '#6366f1', icon: '🚗' },
+    { id: 'user-growth',        name: '用户运营与私域增长', color: '#f59e0b', icon: '🎯' },
+    { id: 'offline-experience', name: '线下体验与场景运营', color: '#10b981', icon: '🎪' },
+    { id: 'digital-content',    name: '数字化与内容生态', color: '#3b82f6', icon: '📱' },
+    { id: 'crossover-eco',      name: '跨界与生态联动',   color: '#ec4899', icon: '🔄' },
+    { id: 'industry-trend',     name: '行业趋势与对标洞察', color: '#8b5cf6', icon: '📊' },
+    { id: 'emotion-economy',    name: '情绪经济与情感价值', color: '#14b8a6', icon: '💜' }
   ],
   reports: [
     {
@@ -22,8 +22,8 @@ const REPORT_DATA = {
       summary: '今日精选7大维度案例：蔚来NIO Day情感营销引爆社群、理想汽车线下试驾营转化率提升32%、小鹏KOC种草矩阵月增10万曝光、比亚迪技术白皮书长文案破圈、极氪情绪价值短片播放超500万、问界用户裂变体系拆解、领克品牌焕新视觉系统升级。',
       cases: [
         {
-          id: '2026-09-03-emotional-econ',
-          category: 'emotional-econ',
+          id: '2026-09-03-brand-marketing',
+          category: 'brand-marketing',
           title: '蔚来 NIO Day 情感共鸣营销',
           brand: '蔚来汽车',
           type: '年度发布会情感营销',
@@ -41,8 +41,8 @@ const REPORT_DATA = {
           ]
         },
         {
-          id: '2026-09-03-offline-events',
-          category: 'offline-events',
+          id: '2026-09-03-offline-experience',
+          category: 'offline-experience',
           title: '理想汽车「家庭试驾营」转化闭环',
           brand: '理想汽车',
           type: '场景化线下体验活动',
@@ -59,8 +59,8 @@ const REPORT_DATA = {
           ]
         },
         {
-          id: '2026-09-03-koc-ops',
-          category: 'koc-ops',
+          id: '2026-09-03-user-growth',
+          category: 'user-growth',
           title: '小鹏汽车 KOC 种草矩阵体系',
           brand: '小鹏汽车',
           type: 'KOC分层运营与内容种草',
@@ -77,8 +77,8 @@ const REPORT_DATA = {
           ]
         },
         {
-          id: '2026-09-03-marketing-copy',
-          category: 'marketing-copy',
+          id: '2026-09-03-digital-content',
+          category: 'digital-content',
           title: '比亚迪「刀片电池」技术白皮书破圈',
           brand: '比亚迪',
           type: '技术长文案跨圈层传播',
@@ -95,8 +95,8 @@ const REPORT_DATA = {
           ]
         },
         {
-          id: '2026-09-03-auto-marketing',
-          category: 'auto-marketing',
+          id: '2026-09-03-emotion-economy',
+          category: 'emotion-economy',
           title: '极氪情绪价值短片「出发的理由」',
           brand: '极氪',
           type: '情绪驱动型品牌短片',
@@ -113,8 +113,8 @@ const REPORT_DATA = {
           ]
         },
         {
-          id: '2026-09-03-user-growth',
-          category: 'user-growth',
+          id: '2026-09-03-crossover-eco',
+          category: 'crossover-eco',
           title: '问界 M9 用户裂变体系拆解',
           brand: '问界（华为×赛力斯）',
           type: '产品驱动型裂变增长',
@@ -131,8 +131,8 @@ const REPORT_DATA = {
           ]
         },
         {
-          id: '2026-09-03-brand-building',
-          category: 'brand-building',
+          id: '2026-09-03-industry-trend',
+          category: 'industry-trend',
           title: '领克品牌焕新视觉系统升级',
           brand: '领克',
           type: '品牌视觉焕新与系统化建设',
@@ -156,8 +156,8 @@ const REPORT_DATA = {
       summary: '今日精选7大维度案例：小米SU7「双SU组合」谐音梗代言引爆4.5亿话题播放，蔚来用户生态铁三角支撑连续盈利，MG07×娇兰联名快闪店单店破百台订单，汽车之家AI数字人+AIGC重构内容生产力，传祺×一嗨5万辆全链路生态合作开创租车-购车闭环，新能源渗透率69%+智能化指数40.3重塑行业格局，泡泡玛特IP矩阵情绪消费全球化破2.7万亿市场。',
       cases: [
         {
-          id: '2026-09-04-auto-marketing',
-          category: 'auto-marketing',
+          id: '2026-09-04-brand-marketing',
+          category: 'brand-marketing',
           title: '小米SU7「双SU组合」谐音梗代言破圈',
           brand: '小米汽车',
           type: '明星代言×谐音梗病毒式传播',
@@ -196,8 +196,8 @@ const REPORT_DATA = {
           ]
         },
         {
-          id: '2026-09-04-offline-events',
-          category: 'offline-events',
+          id: '2026-09-04-offline-experience',
+          category: 'offline-experience',
           title: '上汽MG07快闪店×娇兰联名场景运营',
           brand: '上汽MG',
           type: '商圈快闪店×奢侈品联名场景化体验',
@@ -216,8 +216,8 @@ const REPORT_DATA = {
           ]
         },
         {
-          id: '2026-09-04-marketing-copy',
-          category: 'marketing-copy',
+          id: '2026-09-04-digital-content',
+          category: 'digital-content',
           title: '汽车之家AI数字人+AIGC内容生态升级',
           brand: '汽车之家',
           type: 'AI驱动内容生产力重构与数字化闭环',
@@ -236,8 +236,8 @@ const REPORT_DATA = {
           ]
         },
         {
-          id: '2026-09-04-koc-ops',
-          category: 'koc-ops',
+          id: '2026-09-04-crossover-eco',
+          category: 'crossover-eco',
           title: '广汽传祺×一嗨租车全链路生态合作',
           brand: '广汽传祺 × 一嗨租车',
           type: '行业首创租车-购车消费闭环',
@@ -256,8 +256,8 @@ const REPORT_DATA = {
           ]
         },
         {
-          id: '2026-09-04-brand-building',
-          category: 'brand-building',
+          id: '2026-09-04-industry-trend',
+          category: 'industry-trend',
           title: '2026新能源渗透率69%+智能化指数40.3重塑行业格局',
           brand: '行业趋势洞察',
           type: '金字塔原理·新能源×AI双轮驱动行业重构',
@@ -276,8 +276,8 @@ const REPORT_DATA = {
           ]
         },
         {
-          id: '2026-09-04-emotional-econ',
-          category: 'emotional-econ',
+          id: '2026-09-04-emotion-economy',
+          category: 'emotion-economy',
           title: '泡泡玛特IP矩阵情绪消费全球化运营',
           brand: '泡泡玛特（非汽车·潮玩赛道）',
           type: 'PDCA·情绪经济IP矩阵全球化偷师',
