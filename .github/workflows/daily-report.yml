@@ -1,0 +1,54 @@
+name: 每日案例报告自动生成
+
+on:
+  # 工作日北京时间9:00触发（UTC 1:00）
+  schedule:
+    - cron: '0 1 * * 1-5'
+  # 支持手动触发（用于测试）
+  workflow_dispatch:
+
+permissions:
+  contents: write  # 允许推送生成的文件
+
+jobs:
+  generate-report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 检出仓库
+        uses: actions/checkout@v4
+
+      - name: 🐍 配置Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 📦 安装依赖
+        run: |
+          pip install -r requirements.txt
+
+      - name: 🚀 生成日报
+        env:
+          # 搜索API（至少配置一个）
+          SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }}
+          NEWS_API_KEY: ${{ secrets.NEWS_API_KEY }}
+          # LLM API（可选，配置后生成STAR/PDCA深度分析）
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_API_BASE: ${{ secrets.LLM_API_BASE }}
+          LLM_MODEL: ${{ secrets.LLM_MODEL }}
+        run: |
+          python generate_report.py
+
+      - name: 📤 推送更新
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          # 仅在有变更时才提交
+          if git diff --staged --quiet; then
+            echo "ℹ️ 无新增内容，跳过提交"
+          else
+            DATE=$(date -u -d '+8 hours' +%Y-%m-%d)
+            git commit -m "📊 自动生成 ${DATE} 日报"
+            git push
+          fi
