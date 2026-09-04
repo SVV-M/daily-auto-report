@@ -570,8 +570,79 @@ def generate_report_html(date_str, cases_data):
 
 
 # ============ data.js 更新模块 ============
+def _find_matching_brace(content, start_pos):
+    """从start_pos（指向一个'{'）开始，用大括号计数法找到匹配的'}'位置"""
+    depth = 0
+    pos = start_pos
+    while pos < len(content):
+        ch = content[pos]
+        if ch == '{':
+            depth += 1
+        elif ch == '}':
+            depth -= 1
+            if depth == 0:
+                return pos
+        pos += 1
+    return -1  # 未找到匹配
+
+
+def _remove_report_entry_by_date(content, date_str):
+    """使用大括号计数法精确移除包含指定日期的报告条目"""
+    # 查找日期字符串
+    for quote in ["'", '"']:
+        date_marker = f"date: {quote}{date_str}{quote}"
+        pos = content.find(date_marker)
+        if pos != -1:
+            break
+    else:
+        return content  # 未找到该日期，无需移除
+
+    # 从日期位置向前找该条目的起始 {
+    brace_depth = 0
+    start_pos = pos
+    while start_pos >= 0:
+        ch = content[start_pos]
+        if ch == '}':
+            brace_depth += 1
+        elif ch == '{':
+            if brace_depth == 0:
+                break  # 找到条目起始的 {
+            brace_depth -= 1
+        start_pos -= 1
+
+    if start_pos < 0:
+        print("  ⚠️ 无法定位报告条目起始位置，跳过移除")
+        return content
+
+    # 从起始 { 向后找匹配的结束 }
+    end_pos = _find_matching_brace(content, start_pos)
+    if end_pos < 0:
+        print("  ⚠️ 无法定位报告条目结束位置，跳过移除")
+        return content
+
+    # 移除该条目，处理前后的逗号和空白
+    before = content[:start_pos].rstrip()
+    after = content[end_pos + 1:]
+
+    # 判断条目前后是否有逗号需要清理
+    if after.lstrip().startswith(','):
+        # 条目后有逗号，去掉逗号
+        after = after.lstrip()
+        after = after[1:]  # 去掉逗号
+    elif before.endswith(','):
+        # 条目前有逗号（前一个条目的尾部逗号），去掉逗号
+        before = before[:-1]
+
+    # 重新拼接，保持缩进
+    return before + "\n    " + after.lstrip()
+
+
 def update_data_js(date_str, new_cases):
-    """将新日报数据追加到data.js的reports数组"""
+    """将新日报数据追加到data.js的reports数组
+
+    使用大括号计数法精确定位和移除旧条目，
+    使用文件末尾 ]; 模式定位插入点，避免正则匹配嵌套结构出错。
+    """
     if not DATA_JS_PATH.exists():
         print("  ⚠️ data.js 不存在，跳过更新")
         return
@@ -579,14 +650,11 @@ def update_data_js(date_str, new_cases):
     content = DATA_JS_PATH.read_text(encoding="utf-8")
 
     # 检查是否已有该日期的数据，如有则先移除旧数据再追加新的
-    date_pattern = f"date: '{date_str}'"
-    date_pattern2 = f'date: "{date_str}"'
-    if date_pattern in content or date_pattern2 in content:
+    date_check_single = f"date: '{date_str}'"
+    date_check_double = f'date: "{date_str}"'
+    if date_check_single in content or date_check_double in content:
         print(f"  ℹ️ data.js 已包含 {date_str} 的数据，将移除旧数据后重新追加")
-        # 移除该日期的整个报告条目（从 { 到 },）
-        # 匹配包含该日期的整个对象
-        old_entry_pattern = r',?\s*\{[^}]*date:\s*[\'"]' + re.escape(date_str) + r'[\'"][^}]*\}'
-        content = re.sub(old_entry_pattern, '', content, flags=re.DOTALL)
+        content = _remove_report_entry_by_date(content, date_str)
 
     # 构建新报告条目
     summary_parts = []
@@ -608,37 +676,39 @@ def update_data_js(date_str, new_cases):
     new_report_json = json.dumps(new_report, ensure_ascii=False, indent=4)
     # 缩进处理：在每行前加4个空格（与data.js中现有格式对齐）
     indented_lines = []
-    for i, line in enumerate(new_report_json.split("\n")):
-        if i == 0:
-            indented_lines.append("    " + line)
-        else:
-            indented_lines.append("    " + line)
+    for line in new_report_json.split("\n"):
+        indented_lines.append("    " + line)
     new_report_str = "\n".join(indented_lines)
 
-    # 在reports数组的最后一个 ] 前插入新条目
-    # 找到reports数组中最后一个条目的结束位置
-    # 策略：找到 "  ]" 模式（reports数组的结束括号）
-    # 更安全的方式：找到最后一个报告条目后的位置
-
-    # 找到 reports: [ 后面的内容，在最后一个 } 后、] 前插入
-    pattern = r'(reports:\s*\[[\s\S]*?\{[\s\S]*?\}\s*)\]'
-    match = re.search(pattern, content)
+    # 在reports数组的结束 ] 前插入新条目
+    # 关键修复：使用文件末尾 ];\n}; 模式定位，而非正则匹配嵌套结构
+    # 寻找 reports 数组的结束标记：] 后紧跟换行和 };
+    close_pattern = r'\]\s*\n\s*\}\;\s*$'
+    match = re.search(close_pattern, content)
     if match:
-        insert_pos = match.end() - 1  # 在 ] 前插入
-        new_content = content[:insert_pos] + ",\n" + new_report_str + "\n  ]" + content[insert_pos + 1:]
+        # match.start() 是 ] 的位置
+        bracket_pos = match.start()
+        # 在 ] 前插入新条目
+        before_bracket = content[:bracket_pos].rstrip()
+        new_content = before_bracket + ",\n" + new_report_str + "\n  ]\n};\n"
         DATA_JS_PATH.write_text(new_content, encoding="utf-8")
         print(f"  ✅ 已将 {date_str} 数据追加到 data.js")
     else:
-        # 备用方案：直接在文件末尾的 }; 前追加
-        print("  ⚠️ 无法解析data.js的reports数组结构，尝试备用方案...")
-        # 找到文件末尾
-        if content.rstrip().endswith("};"):
-            base = content.rstrip()[:-2]  # 去掉 };
-            new_content = base + "\n  ,\n" + new_report_str + "\n  ]\n};"
-            # 这个方案不太安全，先跳过
-            print("  ⚠️ 备用方案也不安全，跳过data.js更新")
-            return
-        print("  ⚠️ 无法更新data.js")
+        # 备用方案：从文件末尾倒找 ]; 模式
+        print("  ⚠️ 标准模式未匹配，尝试备用定位...")
+        # 找最后一个 ] 后跟 }; 的位置
+        last_brace_semi = content.rfind("};")
+        if last_brace_semi > 0:
+            # 从 }; 向前找 ]
+            search_area = content[:last_brace_semi]
+            last_bracket = search_area.rfind("]")
+            if last_bracket > 0:
+                before_bracket = content[:last_bracket].rstrip()
+                new_content = before_bracket + ",\n" + new_report_str + "\n  ]\n};\n"
+                DATA_JS_PATH.write_text(new_content, encoding="utf-8")
+                print(f"  ✅ 已将 {date_str} 数据追加到 data.js（备用方案）")
+                return
+        print("  ❌ 无法定位data.js的reports数组结束位置，跳过更新")
 
 
 # ============ 主流程 ============
