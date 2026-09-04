@@ -3,7 +3,7 @@ name: 每日案例报告自动生成
 on:
   # 工作日北京时间9:00触发（UTC 1:00）
   schedule:
-    - cron: '0 1 * * 1-5'
+    - cron: '0 1 * * *'
   # 支持手动触发（用于测试）
   workflow_dispatch:
 
