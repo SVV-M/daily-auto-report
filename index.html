@@ -1,0 +1,169 @@
+<!-- AI生成 -->
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>每日案例报告 · 汽车行业七维洞察</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+</head>
+<body>
+  <!-- 背景装饰层 -->
+  <div class="bg-decoration">
+    <div class="bg-blob blob-1"></div>
+    <div class="bg-blob blob-2"></div>
+    <div class="bg-blob blob-3"></div>
+    <div class="bg-grid"></div>
+    <div class="bg-noise"></div>
+  </div>
+
+  <!-- 顶部导航 -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">
+        <div class="logo-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 16l4-8 4 4 5-9"/></svg>
+        </div>
+        <div class="logo-text">
+          <h1>每日案例报告</h1>
+          <p class="subtitle">汽车行业 · 七维洞察</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <div class="view-toggle-group">
+          <button class="view-toggle active" data-view="calendar">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span>日历</span>
+          </button>
+          <button class="view-toggle" data-view="timeline">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            <span>列表</span>
+          </button>
+        </div>
+        <button class="icon-btn bookmark-filter-btn" id="bookmark-filter-btn" title="仅看收藏">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </button>
+        <button class="icon-btn theme-toggle" id="theme-toggle" title="切换主题">
+          <svg class="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <svg class="icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主内容区 -->
+  <main class="main">
+    <!-- 侧边栏：分类筛选 -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-section">
+        <h3 class="sidebar-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+          分类筛选
+        </h3>
+        <div class="category-list" id="category-list">
+          <!-- JS 动态生成 -->
+        </div>
+      </div>
+      <div class="sidebar-section sidebar-stats">
+        <div class="stat-item">
+          <span class="stat-label">报告总数</span>
+          <span class="stat-value" id="total-reports">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">已收藏</span>
+          <span class="stat-value" id="total-bookmarks">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">覆盖天数</span>
+          <span class="stat-value" id="total-days">0</span>
+        </div>
+      </div>
+      <!-- 移动端侧边栏开关 -->
+      <button class="sidebar-close" id="sidebar-close">✕</button>
+    </aside>
+
+    <!-- 内容区域 -->
+    <div class="content">
+      <!-- 日历视图 -->
+      <section id="calendar-view" class="view active">
+        <div class="calendar-nav">
+          <button class="nav-btn" id="prev-month">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <h2 class="calendar-title" id="current-month"></h2>
+          <button class="nav-btn" id="next-month">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+        <div class="calendar-weekdays">
+          <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+        </div>
+        <div class="calendar-grid" id="calendar-grid">
+          <!-- JS 动态生成 -->
+        </div>
+      </section>
+
+      <!-- 列表视图 -->
+      <section id="timeline-view" class="view">
+        <div class="timeline-header">
+          <h2>全部报告</h2>
+          <div class="sort-controls">
+            <button class="sort-btn active" data-sort="date-desc">最新优先</button>
+            <button class="sort-btn" data-sort="date-asc">最早优先</button>
+          </div>
+        </div>
+        <div class="timeline-list" id="timeline-list">
+          <!-- JS 动态生成 -->
+        </div>
+        <div class="empty-state" id="empty-state" style="display:none">
+          <div class="empty-icon">📭</div>
+          <p>暂无匹配的报告</p>
+          <span>试试调整筛选条件</span>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- 移动端筛选按钮 -->
+  <button class="mobile-filter-btn" id="mobile-filter-btn">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+  </button>
+
+  <!-- 报告查看弹窗 -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal" id="report-modal">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <h2 id="modal-title"></h2>
+        </div>
+        <div class="modal-actions">
+          <button class="icon-btn modal-close" id="modal-close" title="关闭">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <!-- 摘要 -->
+        <div class="modal-summary">
+          <span class="summary-icon">💡</span>
+          <span id="modal-summary-text"></span>
+        </div>
+        <!-- 维度Tab栏 -->
+        <div class="modal-dim-tabs" id="modal-dim-tabs"></div>
+        <!-- 案例卡片容器 -->
+        <div class="modal-cases" id="modal-cases"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast 通知 -->
+  <div class="toast" id="toast"></div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
