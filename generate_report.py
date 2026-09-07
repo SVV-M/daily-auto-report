@@ -728,45 +728,45 @@ def generate_case_with_llm(dim_info, search_results):
             print(f"    ⚠️ LLM API HTTP {resp.status_code}: {resp.text[:200]}")
             return None
 
-        content = resp.json()["choices"][0]["message"]["content"]
+        # 提取响应内容（兼容多种API响应格式）
+        resp_json = resp.json()
+        content = None
 
-        # 提取JSON：尝试多种方式
-        case_data = None
-
-        # 方式1：直接解析整个响应
+        # 格式1：标准OpenAI格式 choices[0].message.content
         try:
-            case_data = json.loads(content)
-            if "title" in case_data and "sections" in case_data:
-                pass
-            else:
-                case_data = None
-        except json.JSONDecodeError:
+            content = resp_json["choices"][0]["message"]["content"]
+        except (KeyError, IndexError, TypeError):
             pass
 
-        # 方式2：提取```json```代码块
-        if not case_data:
-            code_block = re.search(r'```(?:json)?\s*\n?([\s\S]*?)\n?```', content)
-            if code_block:
-                try:
-                    case_data = json.loads(code_block.group(1).strip())
-                    if not ("title" in case_data and "sections" in case_data):
-                        case_data = None
-                except json.JSONDecodeError:
-                    pass
+        # 格式2：Anthropic格式 content[0].text
+        if not content:
+            try:
+                for block in resp_json.get("content", []):
+                    if block.get("type") == "text":
+                        content = block.get("text", "")
+                        if content:
+                            break
+            except (KeyError, TypeError):
+                pass
 
-        # 方式3：提取最外层花括号
-        if not case_data:
-            json_match = re.search(r'\{[\s\S]*\}', content)
-            if json_match:
-                try:
-                    case_data = json.loads(json_match.group())
-                    if not ("title" in case_data and "sections" in case_data):
-                        case_data = None
-                except json.JSONDecodeError:
-                    pass
+        # 格式3：直接在response中
+        if not content:
+            content = resp_json.get("content", "") or resp_json.get("text", "")
+
+        if not content or not content.strip():
+            print(f"    ⚠️ LLM返回空内容，响应键: {list(resp_json.keys())}")
+            return None
+
+        # 预处理：去除BOM、零宽字符、首尾空白
+        content = content.strip()
+        content = content.lstrip("﻿")  # BOM
+        content = re.sub(r'[\u200b\u200c\u200d\ufeff]', '', content)  # 零宽字符
+
+        # 提取JSON：尝试多种方式（从严格到宽松）
+        case_data = _extract_json_from_llm_response(content)
 
         if not case_data:
-            print(f"    ⚠️ LLM响应无法解析为有效JSON，内容前200字: {content[:200]}")
+            print(f"    ⚠️ LLM响应无法解析为有效JSON，内容前300字: {content[:300]}")
             return None
 
         # 对LLM输出进行清洗
@@ -783,6 +783,125 @@ def generate_case_with_llm(dim_info, search_results):
     except Exception as e:
         print(f"  ⚠️ LLM生成失败: {e}")
     return None
+
+
+def _extract_json_from_llm_response(content):
+    """从LLM响应中鲁棒地提取JSON对象
+
+    策略优先级（从严格到宽松）：
+    1. 直接解析整个响应
+    2. 提取```json```或```代码块
+    3. 用平衡括号法找到最外层JSON对象（非贪婪）
+    4. 尝试修复常见JSON问题后重试（尾部逗号、注释等）
+    """
+    if not content or not content.strip():
+        return None
+
+    def _try_parse(text):
+        """尝试解析JSON，返回包含title和sections的dict，否则None"""
+        if not text or not text.strip():
+            return None
+        try:
+            data = json.loads(text)
+            if isinstance(data, dict) and "title" in data and "sections" in data:
+                return data
+        except json.JSONDecodeError:
+            pass
+        return None
+
+    # 方式1：直接解析整个响应
+    result = _try_parse(content)
+    if result:
+        return result
+
+    # 方式2：提取```json```或```代码块
+    code_block = re.search(r'```(?:json)?\s*\n?([\s\S]*?)\n?```', content)
+    if code_block:
+        result = _try_parse(code_block.group(1).strip())
+        if result:
+            return result
+
+    # 方式3：用平衡括号法找到第一个完整的顶层JSON对象
+    # 从第一个{开始，用深度计数找到匹配的}，而非贪婪正则
+    def _find_balanced_json(text, start=0):
+        """从text中start位置开始，用平衡括号法找第一个完整JSON对象"""
+        first_brace = text.find('{', start)
+        if first_brace < 0:
+            return None
+        depth = 0
+        in_string = False
+        escape_next = False
+        for i in range(first_brace, len(text)):
+            ch = text[i]
+            if escape_next:
+                escape_next = False
+                continue
+            if ch == '\\' and in_string:
+                escape_next = True
+                continue
+            if ch == '"' and not escape_next:
+                in_string = not in_string
+                continue
+            if in_string:
+                continue
+            if ch == '{':
+                depth += 1
+            elif ch == '}':
+                depth -= 1
+                if depth == 0:
+                    return text[first_brace:i+1]
+        return None
+
+    candidate = _find_balanced_json(content)
+    if candidate:
+        result = _try_parse(candidate)
+        if result:
+            return result
+
+    # 方式4：尝试修复常见JSON问题后重试
+    repaired = _repair_json_string(content)
+    if repaired != content:
+        result = _try_parse(repaired)
+        if result:
+            return result
+        # 也尝试从修复后的文本中提取代码块和括号匹配
+        code_block = re.search(r'```(?:json)?\s*\n?([\s\S]*?)\n?```', repaired)
+        if code_block:
+            result = _try_parse(code_block.group(1).strip())
+            if result:
+                return result
+        candidate = _find_balanced_json(repaired)
+        if candidate:
+            result = _try_parse(candidate)
+            if result:
+                return result
+
+    return None
+
+
+def _repair_json_string(text):
+    """修复LLM输出中常见的JSON格式问题
+
+    处理：
+    - 尾部逗号（,}和,]）
+    - JavaScript注释（//和/* */）
+    - 多余的换行和空白
+    """
+    if not text:
+        return text
+
+    # 移除JavaScript单行注释（// ...）—— 但不破坏URL中的 //
+    # 仅移除行首或逗号后的注释
+    text = re.sub(r'(?<=[,\[\{])\s*//[^\n]*', '', text)
+    text = re.sub(r'^\s*//[^\n]*', '', text, flags=re.MULTILINE)
+    # 移除JavaScript多行注释（/* ... */）
+    text = re.sub(r'/\*[\s\S]*?\*/', '', text)
+
+    # 修复尾部逗号：,} → }  ,] → ]
+    text = re.sub(r',\s*}', '}', text)
+    text = re.sub(r',\s*]', ']', text)
+
+    return text
 
 
 def _clean_llm_case(case_data):
@@ -1213,7 +1332,7 @@ def generate_report_html(date_str, cases_data):
     .case-cat {{ font-size: 14px; font-weight: 700; padding: 5px 14px; border-radius: 24px; white-space: nowrap; }}
     .case-title {{ font-size: 22px; font-weight: 800; flex: 1; letter-spacing: -0.02em; line-height: 1.3; }}
     .case-brand {{ font-size: 15px; color: var(--c-text2); margin-bottom: 16px; font-weight: 500; }}
-    .case-section {{ margin-bottom6: 16px; }}
+    .case-section {{ margin-bottom: 16px; }}
     .case-section h4 {{ font-size: 14px; font-weight: 700; color: var(--c-primary); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }}
     .case-section h4::before {{ content: ''; width: 3px; height: 14px; background: var(--c-primary); border-radius: 2px; }}
     .case-section p {{ font-size: 16px; color: var(--c-text2); line-height: 1.85; }}
@@ -1403,11 +1522,49 @@ def _remove_report_entry_by_date(content, date_str):
     return before + "\n    " + after.lstrip()
 
 
+def _json_to_js_literal(obj, indent=2, _level=0):
+    """将Python对象递归转为JS字面量字符串（无引号key + 单引号value）
+
+    对齐data.js现有格式：
+    - key无引号：date: '2026-09-07'
+    - 字符串值用单引号
+    - 缩进2空格递增
+    """
+    prefix = " " * (indent * _level)
+    inner = " " * (indent * (_level + 1))
+
+    if isinstance(obj, dict):
+        if not obj:
+            return "{}"
+        items = []
+        for k, v in obj.items():
+            items.append(f"{inner}{k}: {_json_to_js_literal(v, indent, _level + 1)}")
+        return "{\n" + ",\n".join(items) + "\n" + prefix + "}"
+    elif isinstance(obj, list):
+        if not obj:
+            return "[]"
+        items = []
+        for v in obj:
+            items.append(f"{inner}{_json_to_js_literal(v, indent, _level + 1)}")
+        return "[\n" + ",\n".join(items) + "\n" + prefix + "]"
+    elif isinstance(obj, str):
+        # 转义单引号和特殊字符
+        escaped = obj.replace("\\", "\\\\").replace("'", "\\'").replace("\n", "\\n")
+        return f"'{escaped}'"
+    elif isinstance(obj, bool):
+        return "true" if obj else "false"
+    elif obj is None:
+        return "null"
+    else:
+        return str(obj)
+
+
 def update_data_js(date_str, new_cases):
-    """将新日报数据追加到data.js的reports数组
+    """将新日报数据覆盖写入data.js的reports数组（同日期先删旧再写入新的）
 
     使用大括号计数法精确定位和移除旧条目，
     使用文件末尾 ]; 模式定位插入点，避免正则匹配嵌套结构出错。
+    输出格式对齐data.js现有风格：无引号key + 单引号value + 2空格缩进。
     """
     if not DATA_JS_PATH.exists():
         print("  ⚠️ data.js 不存在，跳过更新")
@@ -1415,11 +1572,13 @@ def update_data_js(date_str, new_cases):
 
     content = DATA_JS_PATH.read_text(encoding="utf-8")
 
-    # 检查是否已有该日期的数据，如有则先移除旧数据再追加新的
-    date_check_single = f"date: '{date_str}'"
-    date_check_double = f'date: "{date_str}"'
-    if date_check_single in content or date_check_double in content:
-        print(f"  ℹ️ data.js 已包含 {date_str} 的数据，将移除旧数据后重新追加")
+    # 检查是否已有该日期的数据，如有则先移除旧数据再覆盖写入新的
+    # 支持三种格式：JS字面量(date: 'xxx')、JSON双引号("date": "xxx")、JSON无引号key(date: "xxx")
+    date_check_js = f"date: '{date_str}'"
+    date_check_json_dq = f'"date": "{date_str}"'
+    date_check_json_bare = f'date: "{date_str}"'
+    if date_check_js in content or date_check_json_dq in content or date_check_json_bare in content:
+        print(f"  ℹ️ data.js 已包含 {date_str} 的数据，将移除旧数据后覆盖写入")
         content = _remove_report_entry_by_date(content, date_str)
 
     # 构建新报告条目（清洗版摘要）
@@ -1445,11 +1604,11 @@ def update_data_js(date_str, new_cases):
         "cases": new_cases,
     }
 
-    # 将新报告转为JS对象格式的字符串（与现有格式一致）
-    new_report_json = json.dumps(new_report, ensure_ascii=False, indent=4)
-    # 缩进处理：在每行前加4个空格（与data.js中现有格式对齐）
+    # 将新报告转为JS字面量格式（无引号key + 单引号value，与data.js现有格式一致）
+    new_report_js = _json_to_js_literal(new_report, indent=2)
+    # 缩进处理：在每行前加4个空格（与data.js中现有条目对齐）
     indented_lines = []
-    for line in new_report_json.split("\n"):
+    for line in new_report_js.split("\n"):
         indented_lines.append("    " + line)
     new_report_str = "\n".join(indented_lines)
 
