@@ -569,6 +569,200 @@ const REPORT_DATA = {
           ]
         }
       ]
+    },
+    {
+      date: '2026-09-07',
+      title: '每日案例报告',
+      summary: '今日精选7大维度案例：🚗从MG4到MG 07：上汽在快闪店"零距离"倾听用户、🎯共创新生态、启辰大V盟2026全国车主大会广州收官、🎪复兴岛又要搞大事！"百车登陆复兴岛"沪上车友会大集结、📱上汽MG、把国内"直播获客经"念到英国去、🔄捷达首款纯电轿车M6线下亮相 联合茶百道在成都开设限时快闪店等。',
+      cases: [
+        {
+          title: '从MG4到MG 07：上汽在快闪店"零距离"倾听用户',
+          brand: '上汽',
+          type: '汽车营销与品牌传播标杆案例',
+          sections: [
+            {
+              label: '情境 (Situation)',
+              content: '来源URL：'
+            },
+            {
+              label: '任务 (Task)',
+              content: '上汽需通过汽车营销与品牌传播维度的创新策略，在激烈竞争中实现差异化突破与用户价值提升。'
+            },
+            {
+              label: '行动 (Action)',
+              content: '上汽已采取多元化策略推进汽车营销与品牌传播维度布局。'
+            },
+            {
+              label: '结果 (Result)',
+              content: '相关举措在汽车营销与品牌传播维度取得阶段性进展。'
+            }
+          ],
+          metrics: [],
+          id: '2026-09-07-brand-marketing',
+          category: 'brand-marketing'
+        },
+        {
+          title: '共创新生态，启辰大V盟2026全国车主大会广州收官',
+          brand: '上汽',
+          type: '用户运营与私域增长标杆案例',
+          sections: [
+            {
+              label: '情境 (Situation)',
+              content: 'URL：'
+            },
+            {
+              label: '任务 (Task)',
+              content: '上汽需通过用户运营与私域增长维度的创新策略，在激烈竞争中实现差异化突破与用户价值提升。'
+            },
+            {
+              label: '行动 (Action)',
+              content: '上汽已采取多元化策略推进用户运营与私域增长维度布局。'
+            },
+            {
+              label: '结果 (Result)',
+              content: '相关举措在用户运营与私域增长维度取得阶段性进展。'
+            }
+          ],
+          metrics: [],
+          id: '2026-09-07-user-growth',
+          category: 'user-growth'
+        },
+        {
+          title: '复兴岛又要搞大事！"百车登陆复兴岛"沪上车友会大集结',
+          brand: '小鹏',
+          type: '车友会标杆案例',
+          sections: [
+            {
+              label: '情境 (Situation)',
+              content: '来源URL:'
+            },
+            {
+              label: '任务 (Task)',
+              content: '小鹏需通过线下体验与场景运营维度的创新策略，在激烈竞争中实现差异化突破与用户价值提升。'
+            },
+            {
+              label: '行动 (Action)',
+              content: '小鹏已采取多元化策略推进线下体验与场景运营维度布局。'
+            },
+            {
+              label: '结果 (Result)',
+              content: '相关举措在线下体验与场景运营维度取得阶段性进展。'
+            }
+          ],
+          metrics: [],
+          id: '2026-09-07-offline-experience',
+          category: 'offline-experience'
+        },
+        {
+          title: '上汽MG，把国内"直播获客经"念到英国去',
+          brand: '上汽',
+          type: '直播标杆案例',
+          sections: [
+            {
+              label: '情境 (Situation)',
+              content: '来源URL:'
+            },
+            {
+              label: '任务 (Task)',
+              content: '上汽需通过数字化与内容生态维度的创新策略，在激烈竞争中实现差异化突破与用户价值提升。'
+            },
+            {
+              label: '行动 (Action)',
+              content: '上汽已采取多元化策略推进数字化与内容生态维度布局。'
+            },
+            {
+              label: '结果 (Result)',
+              content: '相关举措已取得显著成效：700万辆。'
+            }
+          ],
+          metrics: [
+            {
+              label: '规模(万辆)',
+              value: '700'
+            }
+          ],
+          id: '2026-09-07-digital-content',
+          category: 'digital-content'
+        },
+        {
+          title: '捷达首款纯电轿车M6线下亮相 联合茶百道在成都开设限时快闪店',
+          brand: '捷达',
+          type: '快闪店标杆案例',
+          sections: [
+            {
+              label: '情境 (Situation)',
+              content: '来源URL:'
+            },
+            {
+              label: '任务 (Task)',
+              content: '捷达需通过跨界与生态联动维度的创新策略，在激烈竞争中实现差异化突破与用户价值提升。'
+            },
+            {
+              label: '行动 (Action)',
+              content: '捷达已采取多元化策略推进跨界与生态联动维度布局。'
+            },
+            {
+              label: '结果 (Result)',
+              content: '相关举措在跨界与生态联动维度取得阶段性进展。'
+            }
+          ],
+          metrics: [],
+          id: '2026-09-07-crossover-eco',
+          category: 'crossover-eco'
+        },
+        {
+          title: '汽车行业周报：中欧电车价格承诺机制落地 多地开放2026年汽车补贴 长城发布“归元”平台',
+          brand: '长城',
+          type: '行业趋势与对标洞察标杆案例',
+          sections: [
+            {
+              label: '情境 (Situation)',
+              content: '来源URL：'
+            },
+            {
+              label: '任务 (Task)',
+              content: '长城需通过行业趋势与对标洞察维度的创新策略，在激烈竞争中实现差异化突破与用户价值提升。'
+            },
+            {
+              label: '行动 (Action)',
+              content: '长城已采取多元化策略推进行业趋势与对标洞察维度布局。'
+            },
+            {
+              label: '结果 (Result)',
+              content: '相关举措在行业趋势与对标洞察维度取得阶段性进展。'
+            }
+          ],
+          metrics: [],
+          id: '2026-09-07-industry-trend',
+          category: 'industry-trend'
+        },
+        {
+          title: '长安启源×52TOYS跨界联动 顶流IP NOOK"入职"打造灵感座驾',
+          brand: '上汽',
+          type: '情绪经济与情感价值标杆案例',
+          sections: [
+            {
+              label: '情境 (Situation)',
+              content: '来源：中国青年网（汽车频道，2026-05-10）'
+            },
+            {
+              label: '任务 (Task)',
+              content: '上汽需通过情绪经济与情感价值维度的创新策略，在激烈竞争中实现差异化突破与用户价值提升。'
+            },
+            {
+              label: '行动 (Action)',
+              content: '① 中国青年网（汽车频道，2026-05-10）\n② 搜狐汽车（2026-08-10）\n③ 虎嗅（转载自《汽车商业评论》，2026-06-05）\n④ 新浪看点 / 南方都市报（2026-08）'
+            },
+            {
+              label: '结果 (Result)',
+              content: '相关举措在情绪经济与情感价值维度取得阶段性进展。'
+            }
+          ],
+          metrics: [],
+          id: '2026-09-07-emotion-economy',
+          category: 'emotion-economy'
+        }
+      ]
     }
   ]
 };
