@@ -1,0 +1,496 @@
+<!-- AI生成 -->
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>每日案例报告 · 2026年9月4日</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --c-bg: #f8fafc; --c-surface: #ffffff; --c-text: #0f172a;
+      --c-text2: #475569; --c-text3: #94a3b8; --c-border: #e2e8f0;
+      --c-primary: #4f46e5; --c-primary-light: #818cf8; --c-primary-bg: #eef2ff;
+      --c-accent: #f59e0b;
+      --f-sans: "Inter", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      --g-primary: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #a855f7 100%);
+      --c-shadow: rgba(15,23,42,0.06);
+      --c-shadow-md: rgba(15,23,42,0.1);
+    }
+    [data-theme="dark"] {
+      --c-bg: #0c0f1a; --c-surface: #1a1f35; --c-text: #f1f5f9;
+      --c-text2: #cbd5e1; --c-text3: #64748b; --c-border: #2a3050;
+      --c-primary-bg: rgba(79,70,229,0.12); --c-shadow: rgba(0,0,0,0.25); --c-shadow-md: rgba(0,0,0,0.35);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--f-sans); color: var(--c-text); background: var(--c-bg);
+      line-height: 1.75; padding: 40px; max-width: 960px; margin: 0 auto;
+      -webkit-font-smoothing: antialiased;
+    }
+    button { cursor: pointer; border: none; background: none; font: inherit; color: inherit; }
+
+    .toolbar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 32px; gap: 16px;
+    }
+    .back-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 20px; border-radius: 12px;
+      font-size: 15px; font-weight: 600; color: var(--c-text2);
+      border: 1px solid var(--c-border); background: var(--c-surface);
+      transition: all 0.2s ease; text-decoration: none;
+    }
+    .back-btn:hover { border-color: var(--c-primary-light); color: var(--c-primary); transform: translateY(-1px); }
+    .toolbar-right { display: flex; align-items: center; gap: 10px; }
+    .theme-toggle-btn {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--c-text2); border: 1px solid var(--c-border); background: var(--c-surface);
+      transition: all 0.2s ease; font-size: 18px;
+    }
+    .theme-toggle-btn:hover { border-color: var(--c-primary-light); color: var(--c-primary); }
+
+    .report-header {
+      margin-bottom: 32px; padding-bottom: 28px;
+      border-bottom: 2px solid var(--c-border);
+    }
+    h1 {
+      font-size: 36px; font-weight: 900; margin-bottom: 12px;
+      letter-spacing: -0.03em; line-height: 1.2;
+    }
+    .date {
+      font-size: 17px; color: var(--c-text2); margin-bottom: 0;
+      font-weight: 500;
+    }
+
+    .summary {
+      background: linear-gradient(135deg, #eef2ff 0%, #f0fdf4 50%, #fef3c7 100%);
+      border-radius: 20px; padding: 28px 32px; margin-bottom: 32px;
+      font-size: 17px; line-height: 1.85;
+      border-left: 5px solid var(--c-primary);
+      box-shadow: 0 4px 16px rgba(79, 70, 229, 0.08);
+      position: relative; overflow: hidden;
+    }
+    [data-theme="dark"] .summary {
+      background: linear-gradient(135deg, rgba(79,70,229,0.1) 0%, rgba(16,185,129,0.08) 50%, rgba(245,158,11,0.08) 100%);
+    }
+    .summary::before {
+      content: '💡'; position: absolute; top: -10px; right: 20px;
+      font-size: 64px; opacity: 0.08;
+    }
+    .summary strong { color: var(--c-primary); font-weight: 700; }
+
+    .dim-tabs {
+      display: flex; gap: 8px; flex-wrap: wrap;
+      margin-bottom: 28px; padding-bottom: 16px;
+      border-bottom: 1px solid var(--c-border);
+    }
+    .dim-tab {
+      padding: 8px 18px; border-radius: 24px;
+      font-size: 14px; font-weight: 600;
+      color: var(--c-text2); background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      transition: all 0.2s ease; cursor: pointer; white-space: nowrap;
+    }
+    .dim-tab:hover { border-color: var(--c-primary-light); color: var(--c-primary); background: var(--c-primary-bg); }
+    .dim-tab.active {
+      background: var(--g-primary); color: white; border-color: transparent;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+    }
+
+    .filter-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .filter-info { font-size: 14px; color: var(--c-text3); font-weight: 500; }
+    .bookmark-filter-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 16px; border-radius: 24px;
+      font-size: 14px; font-weight: 600; color: var(--c-text2);
+      border: 1px solid var(--c-border); background: var(--c-surface);
+      transition: all 0.2s ease;
+    }
+    .bookmark-filter-btn:hover { border-color: var(--c-accent); color: var(--c-accent); }
+    .bookmark-filter-btn.active {
+      background: rgba(245,158,11,0.12); color: var(--c-accent);
+      border-color: rgba(245,158,11,0.3);
+    }
+
+    .case {
+      background: var(--c-surface); border-radius: 20px;
+      border: 1px solid var(--c-border); padding: 32px; margin-bottom: 24px;
+      box-shadow: 0 4px 16px var(--c-shadow);
+      position: relative; overflow: hidden;
+      transition: all 0.3s ease;
+      animation: caseFadeIn 0.4s ease both;
+    }
+    .case:hover { box-shadow: 0 8px 32px var(--c-shadow-md); transform: translateY(-2px); }
+    .case::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+      background: var(--g-primary);
+    }
+    @keyframes caseFadeIn {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .case.hidden { display: none; }
+
+    .case-header {
+      display: flex; align-items: center; gap: 14px; margin-bottom: 16px;
+    }
+    .case-cat {
+      font-size: 14px; font-weight: 700; padding: 5px 14px; border-radius: 24px;
+      white-space: nowrap; letter-spacing: 0.01em;
+    }
+    .case-title {
+      font-size: 22px; font-weight: 800; flex: 1; letter-spacing: -0.02em;
+      line-height: 1.3;
+    }
+    .case-bm-btn {
+      width: 36px; height: 36px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--c-text3); transition: all 0.2s ease;
+      flex-shrink: 0; cursor: pointer; background: none; border: none;
+    }
+    .case-bm-btn:hover { color: var(--c-accent); background: rgba(245,158,11,0.12); transform: scale(1.15); }
+    .case-bm-btn.bookmarked { color: var(--c-accent); }
+    .case-bm-btn.bookmarked svg { fill: var(--c-accent); }
+
+    .case-brand {
+      font-size: 15px; color: var(--c-text2); margin-bottom: 16px; font-weight: 500;
+    }
+
+    .case-section { margin-bottom: 16px; }
+    .case-section h4 {
+      font-size: 14px; font-weight: 700; color: var(--c-primary);
+      text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .case-section h4::before {
+      content: ''; width: 3px; height: 14px;
+      background: var(--c-primary); border-radius: 2px;
+    }
+    .case-section p {
+      font-size: 16px; color: var(--c-text2); line-height: 1.85;
+    }
+
+    .case-metrics {
+      display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px;
+    }
+    .metric {
+      background: var(--c-primary-bg); border-radius: 12px; padding: 10px 18px;
+      font-size: 15px; font-weight: 500; border: 1px solid rgba(79,70,229,0.1);
+    }
+    .metric strong { color: var(--c-primary); font-weight: 800; }
+
+    .empty-state {
+      text-align: center; padding: 80px 20px; color: var(--c-text3);
+    }
+    .empty-state .empty-icon { font-size: 56px; margin-bottom: 16px; }
+    .empty-state p { font-size: 20px; font-weight: 700; color: var(--c-text2); margin-bottom: 8px; }
+    .empty-state span { font-size: 15px; }
+
+    .footer {
+      text-align: center; color: var(--c-text3); font-size: 14px;
+      margin-top: 56px; padding-top: 28px;
+      border-top: 2px solid var(--c-border);
+    }
+
+    .toast {
+      position: fixed; bottom: 40px; left: 50%;
+      transform: translateX(-50%) translateY(24px);
+      background: var(--c-text); color: var(--c-bg);
+      padding: 14px 28px; border-radius: 24px;
+      font-size: 15px; font-weight: 600; z-index: 300;
+      opacity: 0; visibility: hidden; transition: all 0.3s ease;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.25); white-space: nowrap;
+    }
+    .toast.show { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 640px) {
+      body { padding: 20px; }
+      h1 { font-size: 28px; }
+      .case { padding: 24px; }
+      .case-title { font-size: 19px; }
+      .dim-tabs { gap: 6px; }
+      .dim-tab { padding: 6px 14px; font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <a href="../index.html" class="back-btn">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      返回总览
+    </a>
+    <div class="toolbar-right">
+      <button class="bookmark-filter-btn" id="bm-filter-btn" title="仅看收藏">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <span>仅看收藏</span>
+      </button>
+      <button class="theme-toggle-btn" id="theme-btn" title="切换主题">🌓</button>
+    </div>
+  </div>
+
+  <div class="report-header">
+    <h1>📊 每日案例报告</h1>
+    <p class="date">2026年9月4日 · 汽车行业七维洞察</p>
+  </div>
+
+  <div class="summary">
+    <strong>今日摘要：</strong>智己LS9恒星增程技术营销破圈杀入大型增程SUV前三，零跑全域私域月交付破10万创历史新高，齐鲁秋季车展千车荟萃场景化体验锁单+45%，汽车之家灵机平台AI Agent赋能经销商线索量3倍提升，吉利×旺旺IP联名潮牌跨界Z世代认知+42%，L3级自动驾驶首批准入智驾指数43.2创历史新高，极氪「城市漫游」车主共创情绪短片播放380万+。七大维度，七个标杆案例，深度解析可复用的方法论。
+  </div>
+
+  <div class="dim-tabs" id="dim-tabs"></div>
+
+  <div class="filter-bar">
+    <span class="filter-info" id="filter-info">共 7 个案例</span>
+  </div>
+
+  <div id="cases-container"></div>
+
+  <div class="empty-state" id="empty-state" style="display:none">
+    <div class="empty-icon">📭</div>
+    <p>暂无匹配的案例</p>
+    <span>试试切换维度或取消收藏筛选</span>
+  </div>
+
+  <div class="footer">
+    📊 每日案例报告 · 汽车行业七维洞察 · 由AI智能体自动生成<br>
+    分析模型：STAR法则 · 数据来源：公开信息综合分析
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+  (function() {
+    'use strict';
+
+    const CATEGORIES = [
+      { id: 'brand-marketing', name: '汽车营销与品牌传播', color: '#6366f1', icon: '🚗' }, { id: 'user-growth', name: '用户运营与私域增长', color: '#f59e0b', icon: '🎯' }, { id: 'offline-experience', name: '线下体验与场景运营', color: '#10b981', icon: '🎪' }, { id: 'digital-content', name: '数字化与内容生态', color: '#3b82f6', icon: '📱' }, { id: 'crossover-eco', name: '跨界与生态联动', color: '#ec4899', icon: '🔄' }, { id: 'industry-trend', name: '行业趋势与对标洞察', color: '#8b5cf6', icon: '📊' }, { id: 'emotion-economy', name: '情绪经济与情感价值', color: '#14b8a6', icon: '💜' }
+    ];
+
+    const CASES = [
+      {
+        id: '2026-09-04-brand-marketing', category: 'brand-marketing',
+        title: '智己LS9恒星增程技术营销破圈', brand: '智己汽车', type: '技术差异化驱动的高端品牌传播',
+        sections: [
+          { label: '情境 (Situation)', content: '智己汽车作为上汽高端品牌，8月交付6163辆，连续半年徘徊在五六千辆水平，始终未突破万辆关口。产品口碑优秀但市场转化不足，需找到技术标签的传播突破口。' }, { label: '任务 (Task)', content: '以LS9上市为契机，将"恒星超级增程+灵蜥底盘"技术组合转化为用户可感知的差异化价值，实现从"配置堆砌"到"技术信仰"的品牌认知跃迁。' }, { label: '行动 (Action)', content: '① 技术可视化——恒星增程工作原理3D动画全网分发，将热效率44%等参数转化为直观的续航对比场景；② 灵蜥底盘体验——后轮转向+蟹行模式实拍视频，"大车小开"体感一秒传达；③ 首月交付冲榜——LS9上市首完整交付月杀入大型增程SUV榜单前3，超越理想和领克；④ 连续破万——9月起LS6与LS9双车联动，连续四个月销量破万并屡创新高。' }, { label: '结果 (Result)', content: 'LS9首月杀入大型增程SUV榜单前3，品牌连续四个月销量破万，12月实现品牌首次全成本口径盈利。恒星增程技术认知度环比+150%，"技术尖兵"品牌标签初步建立。' }
+        ],
+        metrics: [
+          { label: '榜单排名', value: '前3' }, { label: '连续破万', value: '4个月' }, { label: '技术认知', value: '+150%' }, { label: '首年盈利', value: '12月达成' }
+        ]
+      },
+      {
+        id: '2026-09-04-user-growth', category: 'user-growth',
+        title: '零跑汽车全域私域月交付破10万方法论', brand: '零跑汽车', type: '全域私域运营与规模化增长',
+        sections: [
+          { label: '情境 (Situation)', content: '零跑8月交付10.3万辆创历史新高，但新势力普遍面临公域流量枯竭、获客成本攀升的困境，需将私域运营从"辅助手段"升级为"增长引擎"。' }, { label: '任务 (Task)', content: '构建"App+小程序+企微社群"全域私域闭环，将用户从"交易终点"转化为"传播起点"，实现月交付持续破10万的规模化增长。' }, { label: '行动 (Action)', content: '① App全生命周期服务——看车、订车、用车、养车、换车全链路在线化，DAU突破80万；② 小程序裂变体系——老带新专属邀请码+双端积分激励，推荐转化率18%；③ 企微社群分层运营——按车型/城市/兴趣分群，精准推送专属活动与内容；④ 数据中台驱动——CDP客户数据平台打通公私域，个性化推荐匹配度超85%。' }, { label: '结果 (Result)', content: '月交付10.3万辆创历史新高，私域贡献线索占比62%，老带新转化率18%，用户推荐占比超30%，CAC较行业均值低40%。' }
+        ],
+        metrics: [
+          { label: '月交付', value: '10.3万' }, { label: '私域线索', value: '62%' }, { label: '推荐转化', value: '18%' }, { label: 'CAC降幅', value: '-40%' }
+        ]
+      },
+      {
+        id: '2026-09-04-offline-experience', category: 'offline-experience',
+        title: '齐鲁秋季车展千车荟萃场景化体验', brand: '2026齐鲁秋季车展', type: '大型车展场景化深度体验运营',
+        sections: [
+          { label: '情境 (Situation)', content: '传统车展"看车不试车"模式难以触发购买决策，用户在静态展示后仍需去4S店试驾，决策链路长、流失率高。秋季购车旺季需创新车展体验模式。' }, { label: '任务 (Task)', content: '将齐鲁车展从"展示平台"升级为"深度体验+即时转化"的一站式购车场景，缩短从接触到成交的决策链路。' }, { label: '行动 (Action)', content: '① 千车实车集结——比亚迪、小米、蔚来、理想等50+品牌全矩阵参展，岚图追光S、零跑A05等多款首发车型集中亮相；② 深度乘坐体验——从"看外观"升级为"坐进去感受"，沉浸式内饰与智能座舱体验区；③ 现场试驾专区——车展场外设置标准化试驾路线，看车即试驾；④ 即时锁单通道——现场专属金融方案+限时权益，缩短决策窗口。' }, { label: '结果 (Result)', content: '参展品牌50+、车型超1000款，现场试驾参与率较传统车展提升3倍，现场锁单量同比+45%，首发车型曝光量占全网当日汽车话题60%+。' }
+        ],
+        metrics: [
+          { label: '参展品牌', value: '50+' }, { label: '试驾提升', value: '3倍' }, { label: '锁单增长', value: '+45%' }, { label: '首发曝光', value: '60%+' }
+        ]
+      },
+      {
+        id: '2026-09-04-digital-content', category: 'digital-content',
+        title: '汽车之家灵机平台AI Agent赋能经销商增长', brand: '汽车之家', type: 'AI Agent数字员工驱动经销商提效',
+        sections: [
+          { label: '情境 (Situation)', content: '汽车经销商面临流量枯竭、人效低下、转化率持续走低的三重困境。传统CRM+人工跟进模式难以应对海量线索的精细化运营需求。' }, { label: '任务 (Task)', content: '以灵机平台AI Agent为底座，为经销商提供"一句话下达目标、自动拆解执行"的数字员工，实现人机协同的线索运营与转化提效。' }, { label: '行动 (Action)', content: '① AI Agent数字员工——基于仓颉大模型，自然语言下达业务目标，自动拆解为线索分级、跟进策略、话术生成等子任务；② 24h AI直播——智能主播根据观众提问实时调取知识库，准确率超90%，人力成本降60%；③ 智能私信——线索进店后AI自动发起个性化私信，黄金5分钟内完成首次触达；④ 数据看板实时优化——监控各直播间指标，系统自动推荐调整策略。' }, { label: '结果 (Result)', content: '门店线索量提升3倍，AI直播准确率超90%，人力成本降低60%，人机协同模式下单店成交翻倍，818全球汽车节直播观看量同比+180%。' }
+        ],
+        metrics: [
+          { label: '线索提升', value: '3倍' }, { label: 'AI准确率', value: '90%+' }, { label: '降本幅度', value: '-60%' }, { label: '818直播', value: '+180%' }
+        ]
+      },
+      {
+        id: '2026-09-04-crossover-eco', category: 'crossover-eco',
+        title: '吉利×旺旺IP联名潮牌跨界年轻化破圈', brand: '吉利汽车 × 旺旺', type: '汽车×国民零食IP联名年轻化破圈',
+        sections: [
+          { label: '情境 (Situation)', content: '吉利品牌用户画像偏成熟家庭客群，Z世代认知度不足。传统汽车广告难以触达年轻圈层，需借助跨界联名打开增量市场。' }, { label: '任务 (Task)', content: '与旺旺IP联名，利用"国民零食"的童年记忆与社交传播力，实现从汽车圈到泛年轻圈的破圈触达，提升品牌年轻化指数。' }, { label: '行动 (Action)', content: '① 联名官宣——吉利×旺旺限定版车型发布，旺旺IP元素融入车身涂装与内饰；② 情绪共鸣设计——"童年记忆+出行新生活"双线叙事，旺仔IP形象与吉利科技感碰撞；③ 社交裂变——联名款开箱UGC激励+限定周边抽奖，用户自发传播；④ 双渠道首发——吉利展厅+旺旺线下快闪同步亮相，圈层交叉引流。' }, { label: '结果 (Result)', content: '联名话题全网播放2.8亿+，Z世代品牌认知度+42%，联名款车型询盘量较常规款+85%，旺旺渠道引流占比达15%。' }
+        ],
+        metrics: [
+          { label: '话题播放', value: '2.8亿+' }, { label: 'Z世代认知', value: '+42%' }, { label: '询盘提升', value: '+85%' }, { label: '跨界引流', value: '15%' }
+        ]
+      },
+      {
+        id: '2026-09-04-industry-trend', category: 'industry-trend',
+        title: 'L3级自动驾驶首批准入智能化真落地', brand: '行业趋势洞察', type: 'L3准入与智能化从概念到商业现实',
+        sections: [
+          { label: '情境 (Situation)', content: 'L3级自动驾驶长期被视为"伪命题"，技术成熟度与法规许可双重瓶颈下，车企智驾宣传多停留在L2+层面，用户信任度不足。' }, { label: '任务 (Task)', content: '2025年底长安与北汽极狐获国内首批L3级有条件自动驾驶产品准入许可，标志着智驾从实验室走向商业落地，需解析其对行业竞争格局的重塑效应。' }, { label: '行动 (Action)', content: '① 首批准入落地——长安、北汽极狐阿尔法S（L3版）获准入，北京指定路段上路试点；② 责任边界厘清——公安部明确L3场景下驾驶员可"放手"但责任主体仍是人，为商业推广划定红线；③ 端到端智驾加速——小鹏、华为等端到端算法路线加速迭代，L2+体验快速逼近L3体感；④ 智驾指数攀升——2026年7月乘用车智驾指数43.2，舱外智能指数26.4（同比+9.9）。' }, { label: '结果 (Result)', content: 'L3首批准入打破行业天花板，智驾指数43.2创历史新高，端到端算法路线成为主流，"不卷价格卷智驾"成为新竞争范式，软件订阅收入成为新利润池。' }
+        ],
+        metrics: [
+          { label: '智驾指数', value: '43.2' }, { label: '舱外智能', value: '26.4' }, { label: '舱外同比', value: '+9.9' }, { label: '准入品牌', value: '2家首批' }
+        ]
+      },
+      {
+        id: '2026-09-04-emotion-economy', category: 'emotion-economy',
+        title: '极氪「城市漫游」车主共创情绪短片', brand: '极氪', type: '车主共创情绪叙事品牌内容',
+        sections: [
+          { label: '情境 (Situation)', content: '极氪在9月交付量承压，品牌需要持续的情感连接维持用户忠诚度。纯技术参数传播无法建立情绪锚点，需让用户在品牌故事中找到自我投射。' }, { label: '任务 (Task)', content: '发起"城市漫游"车主共创计划，让真实车主用镜头记录与极氪的日常，将品牌从"出行工具"转化为"生活方式"的情绪符号。' }, { label: '行动 (Action)', content: '① 车主招募——面向全国极氪车主征集城市漫游Vlog，200+车主报名参与；② 专业赋能——提供拍摄指导、剪辑模板与背景音乐库，降低创作门槛；③ 城市主题——每期聚焦一座城市的独特气质，北京胡同、上海弄堂、成都巷子形成系列；④ 情绪触点——结尾统一"你的城市，你的漫游"引导UGC接力。' }, { label: '结果 (Result)', content: '系列短片全网播放380万+，UGC话题#极氪城市漫游#8.5万+参与，品牌情绪好感度+18%，试驾预约量环比+35%。' }
+        ],
+        metrics: [
+          { label: '播放量', value: '380万+' }, { label: 'UGC参与', value: '8.5万+' }, { label: '好感度', value: '+18%' }, { label: '试驾预约', value: '+35%' }
+        ]
+      }
+    ];
+
+    const state = {
+      activeDim: '__all__',
+      bookmarkFilter: false,
+      bookmarks: new Set(JSON.parse(localStorage.getItem('report-case-bookmarks') || '[]'))
+    };
+
+    const $ = (sel) => document.querySelector(sel);
+
+    function showToast(msg) {
+      const t = $('#toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(t._timer);
+      t._timer = setTimeout(() => t.classList.remove('show'), 2500);
+    }
+
+    function toggleBookmark(caseId) {
+      if (state.bookmarks.has(caseId)) {
+        state.bookmarks.delete(caseId);
+        showToast('已取消收藏');
+      } else {
+        state.bookmarks.add(caseId);
+        showToast('⭐ 已收藏该案例');
+      }
+      localStorage.setItem('report-case-bookmarks', JSON.stringify([...state.bookmarks]));
+      renderCases();
+    }
+
+    function renderDimTabs() {
+      const bar = $('#dim-tabs');
+      const dimIds = [...new Set(CASES.map(c => c.category))];
+
+      let html = `<button class="dim-tab ${state.activeDim === '__all__' ? 'active' : ''}" data-dim="__all__">全部 (${CASES.length})</button>`;
+      dimIds.forEach(dimId => {
+        const cat = CATEGORIES.find(c => c.id === dimId);
+        if (!cat) return;
+        const count = CASES.filter(c => c.category === dimId).length;
+        html += `<button class="dim-tab ${state.activeDim === dimId ? 'active' : ''}" data-dim="${dimId}">${cat.icon} ${cat.name} (${count})</button>`;
+      });
+      bar.innerHTML = html;
+
+      bar.querySelectorAll('.dim-tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.activeDim = btn.dataset.dim;
+          renderDimTabs();
+          renderCases();
+        });
+      });
+    }
+
+    function renderCases() {
+      const container = $('#cases-container');
+      let cases = CASES;
+
+      if (state.activeDim !== '__all__') {
+        cases = cases.filter(c => c.category === state.activeDim);
+      }
+
+      if (state.bookmarkFilter) {
+        cases = cases.filter(c => state.bookmarks.has(c.id));
+      }
+
+      const empty = $('#empty-state');
+      if (cases.length === 0) {
+        container.innerHTML = '';
+        empty.style.display = 'block';
+      } else {
+        empty.style.display = 'none';
+        container.innerHTML = cases.map((c, i) => {
+          const cat = CATEGORIES.find(ct => ct.id === c.category);
+          if (!cat) return '';
+          const isBm = state.bookmarks.has(c.id);
+
+          const sectionsHtml = c.sections.map(s => `
+            <div class="case-section"><h4>${s.label}</h4><p>${s.content}</p></div>
+          `).join('');
+
+          const metricsHtml = c.metrics.map(m => `
+            <span class="metric">${m.label} <strong>${m.value}</strong></span>
+          `).join('');
+
+          return `
+            <div class="case" style="animation-delay:${i * 60}ms" data-case-id="${c.id}">
+              <div class="case-header">
+                <span class="case-cat" style="background:${cat.color}18;color:${cat.color}">${cat.icon} ${cat.name}</span>
+                <span class="case-title">${c.title}</span>
+                <button class="case-bm-btn ${isBm ? 'bookmarked' : ''}" data-case-id="${c.id}" title="${isBm ? '取消收藏' : '收藏该案例'}">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="${isBm ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                </button>
+              </div>
+              <p class="case-brand">品牌：${c.brand} | 类型：${c.type}</p>
+              ${sectionsHtml}
+              ${metricsHtml ? `<div class="case-metrics">${metricsHtml}</div>` : ''}
+            </div>
+          `;
+        }).join('');
+
+        container.querySelectorAll('.case-bm-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleBookmark(btn.dataset.caseId);
+          });
+        });
+      }
+
+      const bmCount = cases.filter(c => state.bookmarks.has(c.id)).length;
+      let info = `共 ${cases.length} 个案例`;
+      if (state.activeDim !== '__all__') {
+        const cat = CATEGORIES.find(c => c.id === state.activeDim);
+        if (cat) info = `${cat.icon} ${cat.name} · ${cases.length} 个案例`;
+      }
+      if (state.bookmarkFilter) info += ` · 已收藏 ${bmCount} 个`;
+      $('#filter-info').textContent = info;
+    }
+
+    function init() {
+      const savedTheme = localStorage.getItem('report-theme');
+      if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
+      else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+
+      $('#theme-btn').addEventListener('click', () => {
+        const html = document.documentElement;
+        const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        html.setAttribute('data-theme', next);
+        localStorage.setItem('report-theme', next);
+      });
+
+      $('#bm-filter-btn').addEventListener('click', () => {
+        state.bookmarkFilter = !state.bookmarkFilter;
+        $('#bm-filter-btn').classList.toggle('active', state.bookmarkFilter);
+        renderCases();
+      });
+
+      renderDimTabs();
+      renderCases();
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  })();
+  </script>
+</body>
+</html>

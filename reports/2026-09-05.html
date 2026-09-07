@@ -1,0 +1,496 @@
+<!-- AI生成 -->
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>每日案例报告 · 2026年9月5日</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --c-bg: #f8fafc; --c-surface: #ffffff; --c-text: #0f172a;
+      --c-text2: #475569; --c-text3: #94a3b8; --c-border: #e2e8f0;
+      --c-primary: #4f46e5; --c-primary-light: #818cf8; --c-primary-bg: #eef2ff;
+      --c-accent: #f59e0b;
+      --f-sans: "Inter", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      --g-primary: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #a855f7 100%);
+      --c-shadow: rgba(15,23,42,0.06);
+      --c-shadow-md: rgba(15,23,42,0.1);
+    }
+    [data-theme="dark"] {
+      --c-bg: #0c0f1a; --c-surface: #1a1f35; --c-text: #f1f5f9;
+      --c-text2: #cbd5e1; --c-text3: #64748b; --c-border: #2a3050;
+      --c-primary-bg: rgba(79,70,229,0.12); --c-shadow: rgba(0,0,0,0.25); --c-shadow-md: rgba(0,0,0,0.35);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--f-sans); color: var(--c-text); background: var(--c-bg);
+      line-height: 1.75; padding: 40px; max-width: 960px; margin: 0 auto;
+      -webkit-font-smoothing: antialiased;
+    }
+    button { cursor: pointer; border: none; background: none; font: inherit; color: inherit; }
+
+    .toolbar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 32px; gap: 16px;
+    }
+    .back-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 20px; border-radius: 12px;
+      font-size: 15px; font-weight: 600; color: var(--c-text2);
+      border: 1px solid var(--c-border); background: var(--c-surface);
+      transition: all 0.2s ease; text-decoration: none;
+    }
+    .back-btn:hover { border-color: var(--c-primary-light); color: var(--c-primary); transform: translateY(-1px); }
+    .toolbar-right { display: flex; align-items: center; gap: 10px; }
+    .theme-toggle-btn {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--c-text2); border: 1px solid var(--c-border); background: var(--c-surface);
+      transition: all 0.2s ease; font-size: 18px;
+    }
+    .theme-toggle-btn:hover { border-color: var(--c-primary-light); color: var(--c-primary); }
+
+    .report-header {
+      margin-bottom: 32px; padding-bottom: 28px;
+      border-bottom: 2px solid var(--c-border);
+    }
+    h1 {
+      font-size: 36px; font-weight: 900; margin-bottom: 12px;
+      letter-spacing: -0.03em; line-height: 1.2;
+    }
+    .date {
+      font-size: 17px; color: var(--c-text2); margin-bottom: 0;
+      font-weight: 500;
+    }
+
+    .summary {
+      background: linear-gradient(135deg, #eef2ff 0%, #f0fdf4 50%, #fef3c7 100%);
+      border-radius: 20px; padding: 28px 32px; margin-bottom: 32px;
+      font-size: 17px; line-height: 1.85;
+      border-left: 5px solid var(--c-primary);
+      box-shadow: 0 4px 16px rgba(79, 70, 229, 0.08);
+      position: relative; overflow: hidden;
+    }
+    [data-theme="dark"] .summary {
+      background: linear-gradient(135deg, rgba(79,70,229,0.1) 0%, rgba(16,185,129,0.08) 50%, rgba(245,158,11,0.08) 100%);
+    }
+    .summary::before {
+      content: '💡'; position: absolute; top: -10px; right: 20px;
+      font-size: 64px; opacity: 0.08;
+    }
+    .summary strong { color: var(--c-primary); font-weight: 700; }
+
+    .dim-tabs {
+      display: flex; gap: 8px; flex-wrap: wrap;
+      margin-bottom: 28px; padding-bottom: 16px;
+      border-bottom: 1px solid var(--c-border);
+    }
+    .dim-tab {
+      padding: 8px 18px; border-radius: 24px;
+      font-size: 14px; font-weight: 600;
+      color: var(--c-text2); background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      transition: all 0.2s ease; cursor: pointer; white-space: nowrap;
+    }
+    .dim-tab:hover { border-color: var(--c-primary-light); color: var(--c-primary); background: var(--c-primary-bg); }
+    .dim-tab.active {
+      background: var(--g-primary); color: white; border-color: transparent;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+    }
+
+    .filter-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .filter-info { font-size: 14px; color: var(--c-text3); font-weight: 500; }
+    .bookmark-filter-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 16px; border-radius: 24px;
+      font-size: 14px; font-weight: 600; color: var(--c-text2);
+      border: 1px solid var(--c-border); background: var(--c-surface);
+      transition: all 0.2s ease;
+    }
+    .bookmark-filter-btn:hover { border-color: var(--c-accent); color: var(--c-accent); }
+    .bookmark-filter-btn.active {
+      background: rgba(245,158,11,0.12); color: var(--c-accent);
+      border-color: rgba(245,158,11,0.3);
+    }
+
+    .case {
+      background: var(--c-surface); border-radius: 20px;
+      border: 1px solid var(--c-border); padding: 32px; margin-bottom: 24px;
+      box-shadow: 0 4px 16px var(--c-shadow);
+      position: relative; overflow: hidden;
+      transition: all 0.3s ease;
+      animation: caseFadeIn 0.4s ease both;
+    }
+    .case:hover { box-shadow: 0 8px 32px var(--c-shadow-md); transform: translateY(-2px); }
+    .case::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+      background: var(--g-primary);
+    }
+    @keyframes caseFadeIn {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .case.hidden { display: none; }
+
+    .case-header {
+      display: flex; align-items: center; gap: 14px; margin-bottom: 16px;
+    }
+    .case-cat {
+      font-size: 14px; font-weight: 700; padding: 5px 14px; border-radius: 24px;
+      white-space: nowrap; letter-spacing: 0.01em;
+    }
+    .case-title {
+      font-size: 22px; font-weight: 800; flex: 1; letter-spacing: -0.02em;
+      line-height: 1.3;
+    }
+    .case-bm-btn {
+      width: 36px; height: 36px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--c-text3); transition: all 0.2s ease;
+      flex-shrink: 0; cursor: pointer; background: none; border: none;
+    }
+    .case-bm-btn:hover { color: var(--c-accent); background: rgba(245,158,11,0.12); transform: scale(1.15); }
+    .case-bm-btn.bookmarked { color: var(--c-accent); }
+    .case-bm-btn.bookmarked svg { fill: var(--c-accent); }
+
+    .case-brand {
+      font-size: 15px; color: var(--c-text2); margin-bottom: 16px; font-weight: 500;
+    }
+
+    .case-section { margin-bottom: 16px; }
+    .case-section h4 {
+      font-size: 14px; font-weight: 700; color: var(--c-primary);
+      text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .case-section h4::before {
+      content: ''; width: 3px; height: 14px;
+      background: var(--c-primary); border-radius: 2px;
+    }
+    .case-section p {
+      font-size: 16px; color: var(--c-text2); line-height: 1.85;
+    }
+
+    .case-metrics {
+      display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px;
+    }
+    .metric {
+      background: var(--c-primary-bg); border-radius: 12px; padding: 10px 18px;
+      font-size: 15px; font-weight: 500; border: 1px solid rgba(79,70,229,0.1);
+    }
+    .metric strong { color: var(--c-primary); font-weight: 800; }
+
+    .empty-state {
+      text-align: center; padding: 80px 20px; color: var(--c-text3);
+    }
+    .empty-state .empty-icon { font-size: 56px; margin-bottom: 16px; }
+    .empty-state p { font-size: 20px; font-weight: 700; color: var(--c-text2); margin-bottom: 8px; }
+    .empty-state span { font-size: 15px; }
+
+    .footer {
+      text-align: center; color: var(--c-text3); font-size: 14px;
+      margin-top: 56px; padding-top: 28px;
+      border-top: 2px solid var(--c-border);
+    }
+
+    .toast {
+      position: fixed; bottom: 40px; left: 50%;
+      transform: translateX(-50%) translateY(24px);
+      background: var(--c-text); color: var(--c-bg);
+      padding: 14px 28px; border-radius: 24px;
+      font-size: 15px; font-weight: 600; z-index: 300;
+      opacity: 0; visibility: hidden; transition: all 0.3s ease;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.25); white-space: nowrap;
+    }
+    .toast.show { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 640px) {
+      body { padding: 20px; }
+      h1 { font-size: 28px; }
+      .case { padding: 24px; }
+      .case-title { font-size: 19px; }
+      .dim-tabs { gap: 6px; }
+      .dim-tab { padding: 6px 14px; font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <a href="../index.html" class="back-btn">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      返回总览
+    </a>
+    <div class="toolbar-right">
+      <button class="bookmark-filter-btn" id="bm-filter-btn" title="仅看收藏">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <span>仅看收藏</span>
+      </button>
+      <button class="theme-toggle-btn" id="theme-btn" title="切换主题">🌓</button>
+    </div>
+  </div>
+
+  <div class="report-header">
+    <h1>📊 每日案例报告</h1>
+    <p class="date">2026年9月5日 · 汽车行业七维洞察</p>
+  </div>
+
+  <div class="summary">
+    <strong>今日摘要：</strong>MG07半固态电池技术普惠13.59万起预售72h破1.2万单，蔚来乐道+萤火虫双品牌Q2交付4.67万扩展用户基盘65%，长城「冰锅」48米冰雪体验话题破亿，车企24h AI直播降本60%准确率90%+，乐道×KFC谐音梗联名马丽常远破圈1.8亿播放，新能源渗透率65.8%竞争从电动化转向智能化，岚图追光S用户共创"星云紫"配色月销破2万。七大维度，七个标杆案例，深度解析可复用的方法论。
+  </div>
+
+  <div class="dim-tabs" id="dim-tabs"></div>
+
+  <div class="filter-bar">
+    <span class="filter-info" id="filter-info">共 7 个案例</span>
+  </div>
+
+  <div id="cases-container"></div>
+
+  <div class="empty-state" id="empty-state" style="display:none">
+    <div class="empty-icon">📭</div>
+    <p>暂无匹配的案例</p>
+    <span>试试切换维度或取消收藏筛选</span>
+  </div>
+
+  <div class="footer">
+    📊 每日案例报告 · 汽车行业七维洞察 · 由AI智能体自动生成<br>
+    分析模型：STAR法则 · 数据来源：公开信息综合分析
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+  (function() {
+    'use strict';
+
+    const CATEGORIES = [
+      { id: 'brand-marketing', name: '汽车营销与品牌传播', color: '#6366f1', icon: '🚗' }, { id: 'user-growth', name: '用户运营与私域增长', color: '#f59e0b', icon: '🎯' }, { id: 'offline-experience', name: '线下体验与场景运营', color: '#10b981', icon: '🎪' }, { id: 'digital-content', name: '数字化与内容生态', color: '#3b82f6', icon: '📱' }, { id: 'crossover-eco', name: '跨界与生态联动', color: '#ec4899', icon: '🔄' }, { id: 'industry-trend', name: '行业趋势与对标洞察', color: '#8b5cf6', icon: '📊' }, { id: 'emotion-economy', name: '情绪经济与情感价值', color: '#14b8a6', icon: '💜' }
+    ];
+
+    const CASES = [
+      {
+        id: '2026-09-05-brand-marketing', category: 'brand-marketing',
+        title: 'MG07半固态电池技术普惠营销破局', brand: '上汽MG', type: '技术下放驱动的10万级标配营销',
+        sections: [
+          { label: '情境 (Situation)', content: '半固态电池长期是高端车型专属配置，10万级市场仍以磷酸铁锂为主。MG07需在纯电轿跑红海中打出技术差异化，突破"低价低配"的行业认知。' }, { label: '任务 (Task)', content: '将半固态电池从"顶配专属"变为"入门即享"，以技术普惠策略重构10万级纯电市场价值标杆，实现品牌向上与规模扩张的双赢。' }, { label: '行动 (Action)', content: '① 技术普惠宣言——"半固态电池入门即享"成为MG07核心传播锚点，颠覆"高低配划分用户"的行业惯例；② 续航对比实测——MG07与同级磷酸铁锂车型续航衰减对比测试，高温/低温场景真实数据公开；③ 13.59万预售定价——半固态电池+Momenta R7智驾下放至13.59万起，性价比断层领先；④ MG4成功背书——MG4连续5个月破万、半固态电池下放验证模式可复制。' }, { label: '结果 (Result)', content: 'MG07预售订单72h破1.2万，"半固态电池10万级标配"话题播放3.2亿+，品牌技术信任度+55%，同级竞品被迫跟进技术下放。' }
+        ],
+        metrics: [
+          { label: '预售订单', value: '1.2万/72h' }, { label: '话题播放', value: '3.2亿+' }, { label: '技术信任', value: '+55%' }, { label: '预售价', value: '13.59万起' }
+        ]
+      },
+      {
+        id: '2026-09-05-user-growth', category: 'user-growth',
+        title: '蔚来乐道+萤火虫双品牌用户基盘扩展', brand: '蔚来汽车', type: '双品牌战略驱动用户基盘扩容',
+        sections: [
+          { label: '情境 (Situation)', content: '蔚来主品牌覆盖30万+高端市场，用户基盘有限。2026Q2虽连续盈利，但需扩大用户规模摊薄基础设施与研发成本，同时不稀释主品牌溢价。' }, { label: '任务 (Task)', content: '通过乐道（家庭用车）+萤火虫（城市精品）双品牌扩展用户基盘，实现从"小众高端"到"多圈层覆盖"的战略跃迁，Q2双品牌合计交付4.67万辆。' }, { label: '行动 (Action)', content: '① 乐道定位家庭——20万级家庭用车市场，换电网络复用+家庭场景深度运营；② 萤火虫定位城市精品——15万级城市出行，小巧灵活+时尚设计吸引年轻首购群体；③ 换电网络共享——双品牌复用蔚来4045座换电站基础设施，高频触达强化归属感；④ 会员体系打通——蔚来App统一入口，积分跨品牌流通，生态粘性最大化。' }, { label: '结果 (Result)', content: 'Q2乐道交付2.91万辆+萤火虫1.76万辆，双品牌合计4.67万辆，用户基盘扩展65%+，换电网络使用密度提升28%，会员体系跨品牌活跃率72%。' }
+        ],
+        metrics: [
+          { label: '乐道Q2', value: '2.91万' }, { label: '萤火虫Q2', value: '1.76万' }, { label: '基盘扩展', value: '+65%' }, { label: '跨品牌活跃', value: '72%' }
+        ]
+      },
+      {
+        id: '2026-09-05-offline-experience', category: 'offline-experience',
+        title: '长城汽车「冰锅」48米直径冰雪体验营销', brand: '长城汽车', type: '地标级冰雪场景体验营销',
+        sections: [
+          { label: '情境 (Situation)', content: '冬季是汽车销售淡季，传统室内发布会缺乏话题性。哈尔滨冰雪旅游热度高，但汽车品牌尚未有效借势，需创造现象级场景事件。' }, { label: '任务 (Task)', content: '携手哈尔滨旅游局打造直径48米的"冰锅"地标，将冰雪旅游流量转化为品牌体验流量，实现淡季营销破圈。' }, { label: '行动 (Action)', content: '① 冰锅建造——直径48米巨型冰制锅形建筑，可容纳超千台车同时进入体验；② 驾驶体验——冰雪路面专业试驾科目，展示长城越野车型的低温性能；③ 打卡传播——冰锅内部光影装置+航拍全景，用户自发打卡传播；④ 旅游联动——与哈尔滨冰雪大世界联票，旅游客流转化为品牌曝光。' }, { label: '结果 (Result)', content: '话题播放量破亿，超千台车参与体验，冰雪试驾转化率较常规试驾+65%，品牌冬季搜索指数+120%，成为2026开年最出圈汽车营销事件。' }
+        ],
+        metrics: [
+          { label: '话题播放', value: '1亿+' }, { label: '参与车辆', value: '1000+' }, { label: '转化提升', value: '+65%' }, { label: '搜索指数', value: '+120%' }
+        ]
+      },
+      {
+        id: '2026-09-05-digital-content', category: 'digital-content',
+        title: '车企24h AI直播常态化智能提效时代', brand: '行业数字化趋势', type: 'AI直播+大数据驱动销售线上化',
+        sections: [
+          { label: '情境 (Situation)', content: '传统人力直播受主播档期、体力、专业度限制，难以实现7×24h全覆盖。直播观众提问专业性强，人工主播知识储备不足导致转化流失。' }, { label: '任务 (Task)', content: 'AI直播系统实现24h不间断运营，智能主播实时调取知识库精准答疑，将直播从"人力驱动"升级为"智能提效"，降本60%同时提升转化。' }, { label: '行动 (Action)', content: '① AI主播——智能直播系统自动生成脚本、剪辑高光片段，模拟主播声音完成24h不间断直播；② 实时知识库——根据观众提问调取车型参数、金融方案、竞品对比，准确率超90%；③ 精细化分群——直播观众按兴趣分组（科技控、家庭用户、改装爱好者），定期推送专属内容；④ 用户共创——直播中发起"内饰配色投票"等互动，用户定义产品降低研发风险。' }, { label: '结果 (Result)', content: 'AI直播人力成本降低60%，准确率超90%，精细化运营复购率+18%，用户推荐占比超30%，"星云紫"用户投票配色带动该车型月销破2万。' }
+        ],
+        metrics: [
+          { label: '降本幅度', value: '-60%' }, { label: 'AI准确率', value: '90%+' }, { label: '复购提升', value: '+18%' }, { label: '推荐占比', value: '30%+' }
+        ]
+      },
+      {
+        id: '2026-09-05-crossover-eco', category: 'crossover-eco',
+        title: '乐道×KFC谐音梗联名马丽常远代言破圈', brand: '乐道汽车 × KFC', type: '谐音梗×明星喜剧跨界联名',
+        sections: [
+          { label: '情境 (Situation)', content: '乐道作为蔚来子品牌刚上市，品牌认知度几乎为零。传统硬广投放成本高且难以建立情感连接，需找到低成本高传播的破圈路径。' }, { label: '任务 (Task)', content: '借助"乐道"与"乐道（道理/快乐之道）"的谐音双关，联合KFC与喜剧演员马丽、常远，打造"快乐出行"的情绪共鸣事件。' }, { label: '行动 (Action)', content: '① 谐音梗引爆——"乐道=快乐之道"双关语成为传播核心，马丽常远喜剧风格天然契合；② KFC联名——乐道×KFC限定套餐+车载炸鸡架，出行场景×美食场景情绪叠加；③ 喜剧短视频——马丽常远主演系列短视频，"开车去KFC的快乐之道"轻松破圈；④ 社交裂变——#快乐之道#话题挑战，用户分享"我的乐道时刻"赢联名周边。' }, { label: '结果 (Result)', content: '联名话题播放1.8亿+，乐道品牌认知度从零提升至新能源汽车品牌认知榜前15，KFC渠道引流占比12%，联名款询盘量+70%。' }
+        ],
+        metrics: [
+          { label: '话题播放', value: '1.8亿+' }, { label: '品牌认知', value: '前15' }, { label: '跨界引流', value: '12%' }, { label: '询盘提升', value: '+70%' }
+        ]
+      },
+      {
+        id: '2026-09-05-industry-trend', category: 'industry-trend',
+        title: '新能源渗透率65.8%竞争范式从电动化转向智能化', brand: '行业趋势洞察', type: '渗透率突破与竞争重心迁移分析',
+        sections: [
+          { label: '情境 (Situation)', content: '2026年8月新能源零售预计104万辆，渗透率达65.8%。电动化已不再是差异化标签，行业竞争重心正从"马力"转向"算力"，从"配置堆砌"转向"技术体系"。' }, { label: '任务 (Task)', content: '解析新能源渗透率突破65%后行业竞争范式的根本性迁移，为品牌战略调整提供前瞻洞察。' }, { label: '行动 (Action)', content: '① 渗透率里程碑——8月65.8%创月度新高，1-7月累计同比+26.8%，电动化从"可选"变为"默认"；② 竞争重心迁移——L2级辅助驾驶新车搭载率接近70%，智能座舱指数42.4，"不卷价格卷智驾"成共识；③ 腰部分化加剧——智己、岚图、阿维塔卡在万辆区间，技术标签响但用户认知弱，腰部品牌面临生死淘汰；④ 出口结构升级——比亚迪海外月销18.8万辆，从"低价出海"转向"技术出海"。' }, { label: '结果 (Result)', content: '渗透率65.8%标志电动化竞争终结，智能化成为唯一差异化维度。L2搭载率70%意味着"无智驾不卖车"，腰部品牌需在12个月内完成用户认知建设否则出局。' }
+        ],
+        metrics: [
+          { label: '渗透率', value: '65.8%' }, { label: 'L2搭载率', value: '70%' }, { label: '座舱指数', value: '42.4' }, { label: '海外月销', value: '18.8万' }
+        ]
+      },
+      {
+        id: '2026-09-05-emotion-economy', category: 'emotion-economy',
+        title: '岚图追光S用户共创配色星云紫爆款诞生', brand: '岚图汽车', type: '用户共创驱动的情绪消费爆款',
+        sections: [
+          { label: '情境 (Situation)', content: '岚图8月交付1.3万辆，1-8月累计10.25万辆同比+25%，但追光S作为新车型需快速建立市场认知。传统"厂家定配色"模式缺乏用户参与感，难以激发情绪共鸣。' }, { label: '任务 (Task)', content: '开放追光S内饰配色投票，让用户参与产品定义，将"被动选择"转化为"主动共创"，以情绪参与驱动爆款诞生。' }, { label: '行动 (Action)', content: '① 配色投票——在岚图App发起追光S内饰配色投票，5款候选色由设计师+用户提案混合；② 社交传播——投票过程实时公开，用户拉票形成社交裂变；③ 星云紫胜出——用户投票选定的"星云紫"配色以42%得票率胜出，命名权归用户；④ 限量首发——星云紫配色首批500台限时发售，稀缺感驱动抢购。' }, { label: '结果 (Result)', content: '"星云紫"配色带动追光S月销突破2万辆，用户共创话题播放8000万+，岚图App投票参与率38%，品牌"用户共创"标签认知度+45%。' }
+        ],
+        metrics: [
+          { label: '月销量', value: '2万+' }, { label: '话题播放', value: '8000万+' }, { label: '投票参与', value: '38%' }, { label: '共创认知', value: '+45%' }
+        ]
+      }
+    ];
+
+    const state = {
+      activeDim: '__all__',
+      bookmarkFilter: false,
+      bookmarks: new Set(JSON.parse(localStorage.getItem('report-case-bookmarks') || '[]'))
+    };
+
+    const $ = (sel) => document.querySelector(sel);
+
+    function showToast(msg) {
+      const t = $('#toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(t._timer);
+      t._timer = setTimeout(() => t.classList.remove('show'), 2500);
+    }
+
+    function toggleBookmark(caseId) {
+      if (state.bookmarks.has(caseId)) {
+        state.bookmarks.delete(caseId);
+        showToast('已取消收藏');
+      } else {
+        state.bookmarks.add(caseId);
+        showToast('⭐ 已收藏该案例');
+      }
+      localStorage.setItem('report-case-bookmarks', JSON.stringify([...state.bookmarks]));
+      renderCases();
+    }
+
+    function renderDimTabs() {
+      const bar = $('#dim-tabs');
+      const dimIds = [...new Set(CASES.map(c => c.category))];
+
+      let html = `<button class="dim-tab ${state.activeDim === '__all__' ? 'active' : ''}" data-dim="__all__">全部 (${CASES.length})</button>`;
+      dimIds.forEach(dimId => {
+        const cat = CATEGORIES.find(c => c.id === dimId);
+        if (!cat) return;
+        const count = CASES.filter(c => c.category === dimId).length;
+        html += `<button class="dim-tab ${state.activeDim === dimId ? 'active' : ''}" data-dim="${dimId}">${cat.icon} ${cat.name} (${count})</button>`;
+      });
+      bar.innerHTML = html;
+
+      bar.querySelectorAll('.dim-tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.activeDim = btn.dataset.dim;
+          renderDimTabs();
+          renderCases();
+        });
+      });
+    }
+
+    function renderCases() {
+      const container = $('#cases-container');
+      let cases = CASES;
+
+      if (state.activeDim !== '__all__') {
+        cases = cases.filter(c => c.category === state.activeDim);
+      }
+
+      if (state.bookmarkFilter) {
+        cases = cases.filter(c => state.bookmarks.has(c.id));
+      }
+
+      const empty = $('#empty-state');
+      if (cases.length === 0) {
+        container.innerHTML = '';
+        empty.style.display = 'block';
+      } else {
+        empty.style.display = 'none';
+        container.innerHTML = cases.map((c, i) => {
+          const cat = CATEGORIES.find(ct => ct.id === c.category);
+          if (!cat) return '';
+          const isBm = state.bookmarks.has(c.id);
+
+          const sectionsHtml = c.sections.map(s => `
+            <div class="case-section"><h4>${s.label}</h4><p>${s.content}</p></div>
+          `).join('');
+
+          const metricsHtml = c.metrics.map(m => `
+            <span class="metric">${m.label} <strong>${m.value}</strong></span>
+          `).join('');
+
+          return `
+            <div class="case" style="animation-delay:${i * 60}ms" data-case-id="${c.id}">
+              <div class="case-header">
+                <span class="case-cat" style="background:${cat.color}18;color:${cat.color}">${cat.icon} ${cat.name}</span>
+                <span class="case-title">${c.title}</span>
+                <button class="case-bm-btn ${isBm ? 'bookmarked' : ''}" data-case-id="${c.id}" title="${isBm ? '取消收藏' : '收藏该案例'}">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="${isBm ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                </button>
+              </div>
+              <p class="case-brand">品牌：${c.brand} | 类型：${c.type}</p>
+              ${sectionsHtml}
+              ${metricsHtml ? `<div class="case-metrics">${metricsHtml}</div>` : ''}
+            </div>
+          `;
+        }).join('');
+
+        container.querySelectorAll('.case-bm-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleBookmark(btn.dataset.caseId);
+          });
+        });
+      }
+
+      const bmCount = cases.filter(c => state.bookmarks.has(c.id)).length;
+      let info = `共 ${cases.length} 个案例`;
+      if (state.activeDim !== '__all__') {
+        const cat = CATEGORIES.find(c => c.id === state.activeDim);
+        if (cat) info = `${cat.icon} ${cat.name} · ${cases.length} 个案例`;
+      }
+      if (state.bookmarkFilter) info += ` · 已收藏 ${bmCount} 个`;
+      $('#filter-info').textContent = info;
+    }
+
+    function init() {
+      const savedTheme = localStorage.getItem('report-theme');
+      if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
+      else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+
+      $('#theme-btn').addEventListener('click', () => {
+        const html = document.documentElement;
+        const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        html.setAttribute('data-theme', next);
+        localStorage.setItem('report-theme', next);
+      });
+
+      $('#bm-filter-btn').addEventListener('click', () => {
+        state.bookmarkFilter = !state.bookmarkFilter;
+        $('#bm-filter-btn').classList.toggle('active', state.bookmarkFilter);
+        renderCases();
+      });
+
+      renderDimTabs();
+      renderCases();
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  })();
+  </script>
+</body>
+</html>

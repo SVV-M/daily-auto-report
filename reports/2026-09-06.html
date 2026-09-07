@@ -1,0 +1,496 @@
+<!-- AI生成 -->
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>每日案例报告 · 2026年9月6日</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --c-bg: #f8fafc; --c-surface: #ffffff; --c-text: #0f172a;
+      --c-text2: #475569; --c-text3: #94a3b8; --c-border: #e2e8f0;
+      --c-primary: #4f46e5; --c-primary-light: #818cf8; --c-primary-bg: #eef2ff;
+      --c-accent: #f59e0b;
+      --f-sans: "Inter", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      --g-primary: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #a855f7 100%);
+      --c-shadow: rgba(15,23,42,0.06);
+      --c-shadow-md: rgba(15,23,42,0.1);
+    }
+    [data-theme="dark"] {
+      --c-bg: #0c0f1a; --c-surface: #1a1f35; --c-text: #f1f5f9;
+      --c-text2: #cbd5e1; --c-text3: #64748b; --c-border: #2a3050;
+      --c-primary-bg: rgba(79,70,229,0.12); --c-shadow: rgba(0,0,0,0.25); --c-shadow-md: rgba(0,0,0,0.35);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--f-sans); color: var(--c-text); background: var(--c-bg);
+      line-height: 1.75; padding: 40px; max-width: 960px; margin: 0 auto;
+      -webkit-font-smoothing: antialiased;
+    }
+    button { cursor: pointer; border: none; background: none; font: inherit; color: inherit; }
+
+    .toolbar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 32px; gap: 16px;
+    }
+    .back-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 20px; border-radius: 12px;
+      font-size: 15px; font-weight: 600; color: var(--c-text2);
+      border: 1px solid var(--c-border); background: var(--c-surface);
+      transition: all 0.2s ease; text-decoration: none;
+    }
+    .back-btn:hover { border-color: var(--c-primary-light); color: var(--c-primary); transform: translateY(-1px); }
+    .toolbar-right { display: flex; align-items: center; gap: 10px; }
+    .theme-toggle-btn {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--c-text2); border: 1px solid var(--c-border); background: var(--c-surface);
+      transition: all 0.2s ease; font-size: 18px;
+    }
+    .theme-toggle-btn:hover { border-color: var(--c-primary-light); color: var(--c-primary); }
+
+    .report-header {
+      margin-bottom: 32px; padding-bottom: 28px;
+      border-bottom: 2px solid var(--c-border);
+    }
+    h1 {
+      font-size: 36px; font-weight: 900; margin-bottom: 12px;
+      letter-spacing: -0.03em; line-height: 1.2;
+    }
+    .date {
+      font-size: 17px; color: var(--c-text2); margin-bottom: 0;
+      font-weight: 500;
+    }
+
+    .summary {
+      background: linear-gradient(135deg, #eef2ff 0%, #f0fdf4 50%, #fef3c7 100%);
+      border-radius: 20px; padding: 28px 32px; margin-bottom: 32px;
+      font-size: 17px; line-height: 1.85;
+      border-left: 5px solid var(--c-primary);
+      box-shadow: 0 4px 16px rgba(79, 70, 229, 0.08);
+      position: relative; overflow: hidden;
+    }
+    [data-theme="dark"] .summary {
+      background: linear-gradient(135deg, rgba(79,70,229,0.1) 0%, rgba(16,185,129,0.08) 50%, rgba(245,158,11,0.08) 100%);
+    }
+    .summary::before {
+      content: '💡'; position: absolute; top: -10px; right: 20px;
+      font-size: 64px; opacity: 0.08;
+    }
+    .summary strong { color: var(--c-primary); font-weight: 700; }
+
+    .dim-tabs {
+      display: flex; gap: 8px; flex-wrap: wrap;
+      margin-bottom: 28px; padding-bottom: 16px;
+      border-bottom: 1px solid var(--c-border);
+    }
+    .dim-tab {
+      padding: 8px 18px; border-radius: 24px;
+      font-size: 14px; font-weight: 600;
+      color: var(--c-text2); background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      transition: all 0.2s ease; cursor: pointer; white-space: nowrap;
+    }
+    .dim-tab:hover { border-color: var(--c-primary-light); color: var(--c-primary); background: var(--c-primary-bg); }
+    .dim-tab.active {
+      background: var(--g-primary); color: white; border-color: transparent;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+    }
+
+    .filter-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .filter-info { font-size: 14px; color: var(--c-text3); font-weight: 500; }
+    .bookmark-filter-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 16px; border-radius: 24px;
+      font-size: 14px; font-weight: 600; color: var(--c-text2);
+      border: 1px solid var(--c-border); background: var(--c-surface);
+      transition: all 0.2s ease;
+    }
+    .bookmark-filter-btn:hover { border-color: var(--c-accent); color: var(--c-accent); }
+    .bookmark-filter-btn.active {
+      background: rgba(245,158,11,0.12); color: var(--c-accent);
+      border-color: rgba(245,158,11,0.3);
+    }
+
+    .case {
+      background: var(--c-surface); border-radius: 20px;
+      border: 1px solid var(--c-border); padding: 32px; margin-bottom: 24px;
+      box-shadow: 0 4px 16px var(--c-shadow);
+      position: relative; overflow: hidden;
+      transition: all 0.3s ease;
+      animation: caseFadeIn 0.4s ease both;
+    }
+    .case:hover { box-shadow: 0 8px 32px var(--c-shadow-md); transform: translateY(-2px); }
+    .case::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+      background: var(--g-primary);
+    }
+    @keyframes caseFadeIn {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .case.hidden { display: none; }
+
+    .case-header {
+      display: flex; align-items: center; gap: 14px; margin-bottom: 16px;
+    }
+    .case-cat {
+      font-size: 14px; font-weight: 700; padding: 5px 14px; border-radius: 24px;
+      white-space: nowrap; letter-spacing: 0.01em;
+    }
+    .case-title {
+      font-size: 22px; font-weight: 800; flex: 1; letter-spacing: -0.02em;
+      line-height: 1.3;
+    }
+    .case-bm-btn {
+      width: 36px; height: 36px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--c-text3); transition: all 0.2s ease;
+      flex-shrink: 0; cursor: pointer; background: none; border: none;
+    }
+    .case-bm-btn:hover { color: var(--c-accent); background: rgba(245,158,11,0.12); transform: scale(1.15); }
+    .case-bm-btn.bookmarked { color: var(--c-accent); }
+    .case-bm-btn.bookmarked svg { fill: var(--c-accent); }
+
+    .case-brand {
+      font-size: 15px; color: var(--c-text2); margin-bottom: 16px; font-weight: 500;
+    }
+
+    .case-section { margin-bottom: 16px; }
+    .case-section h4 {
+      font-size: 14px; font-weight: 700; color: var(--c-primary);
+      text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .case-section h4::before {
+      content: ''; width: 3px; height: 14px;
+      background: var(--c-primary); border-radius: 2px;
+    }
+    .case-section p {
+      font-size: 16px; color: var(--c-text2); line-height: 1.85;
+    }
+
+    .case-metrics {
+      display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px;
+    }
+    .metric {
+      background: var(--c-primary-bg); border-radius: 12px; padding: 10px 18px;
+      font-size: 15px; font-weight: 500; border: 1px solid rgba(79,70,229,0.1);
+    }
+    .metric strong { color: var(--c-primary); font-weight: 800; }
+
+    .empty-state {
+      text-align: center; padding: 80px 20px; color: var(--c-text3);
+    }
+    .empty-state .empty-icon { font-size: 56px; margin-bottom: 16px; }
+    .empty-state p { font-size: 20px; font-weight: 700; color: var(--c-text2); margin-bottom: 8px; }
+    .empty-state span { font-size: 15px; }
+
+    .footer {
+      text-align: center; color: var(--c-text3); font-size: 14px;
+      margin-top: 56px; padding-top: 28px;
+      border-top: 2px solid var(--c-border);
+    }
+
+    .toast {
+      position: fixed; bottom: 40px; left: 50%;
+      transform: translateX(-50%) translateY(24px);
+      background: var(--c-text); color: var(--c-bg);
+      padding: 14px 28px; border-radius: 24px;
+      font-size: 15px; font-weight: 600; z-index: 300;
+      opacity: 0; visibility: hidden; transition: all 0.3s ease;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.25); white-space: nowrap;
+    }
+    .toast.show { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 640px) {
+      body { padding: 20px; }
+      h1 { font-size: 28px; }
+      .case { padding: 24px; }
+      .case-title { font-size: 19px; }
+      .dim-tabs { gap: 6px; }
+      .dim-tab { padding: 6px 14px; font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <a href="../index.html" class="back-btn">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      返回总览
+    </a>
+    <div class="toolbar-right">
+      <button class="bookmark-filter-btn" id="bm-filter-btn" title="仅看收藏">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <span>仅看收藏</span>
+      </button>
+      <button class="theme-toggle-btn" id="theme-btn" title="切换主题">🌓</button>
+    </div>
+  </div>
+
+  <div class="report-header">
+    <h1>📊 每日案例报告</h1>
+    <p class="date">2026年9月6日 · 汽车行业七维洞察</p>
+  </div>
+
+  <div class="summary">
+    <strong>今日摘要：</strong>阿维塔07L华为乾崑赋能22.99万起首周订单破8000，比亚迪方程豹月销4.1万同比+155.6%个性化增量模型，传祺×一嗨5万辆租车-购车深度体验闭环，小鹏移动充电网络补能焦虑内容化破圈1.5亿播放，雅迪×旺旺春节联名出行零食情绪共振占C位，全球最严电池安全标准实施事故率降85%，蔚来《十三邀》文化IP品牌调性深耕NPS 85分。七大维度，七个标杆案例，深度解析可复用的方法论。
+  </div>
+
+  <div class="dim-tabs" id="dim-tabs"></div>
+
+  <div class="filter-bar">
+    <span class="filter-info" id="filter-info">共 7 个案例</span>
+  </div>
+
+  <div id="cases-container"></div>
+
+  <div class="empty-state" id="empty-state" style="display:none">
+    <div class="empty-icon">📭</div>
+    <p>暂无匹配的案例</p>
+    <span>试试切换维度或取消收藏筛选</span>
+  </div>
+
+  <div class="footer">
+    📊 每日案例报告 · 汽车行业七维洞察 · 由AI智能体自动生成<br>
+    分析模型：STAR法则 · 数据来源：公开信息综合分析
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+  (function() {
+    'use strict';
+
+    const CATEGORIES = [
+      { id: 'brand-marketing', name: '汽车营销与品牌传播', color: '#6366f1', icon: '🚗' }, { id: 'user-growth', name: '用户运营与私域增长', color: '#f59e0b', icon: '🎯' }, { id: 'offline-experience', name: '线下体验与场景运营', color: '#10b981', icon: '🎪' }, { id: 'digital-content', name: '数字化与内容生态', color: '#3b82f6', icon: '📱' }, { id: 'crossover-eco', name: '跨界与生态联动', color: '#ec4899', icon: '🔄' }, { id: 'industry-trend', name: '行业趋势与对标洞察', color: '#8b5cf6', icon: '📊' }, { id: 'emotion-economy', name: '情绪经济与情感价值', color: '#14b8a6', icon: '💜' }
+    ];
+
+    const CASES = [
+      {
+        id: '2026-09-06-brand-marketing', category: 'brand-marketing',
+        title: '阿维塔07L华为乾崑赋能技术共创传播', brand: '阿维塔', type: '华为技术共创驱动的品牌传播',
+        sections: [
+          { label: '情境 (Situation)', content: '阿维塔8月交付8082辆，同比下降23.5%，上半年销量同比接近腰斩。作为长安+华为+宁德时代三方共创品牌，技术实力强但市场转化严重不足，IPO进程持续搁置。' }, { label: '任务 (Task)', content: '以07L上市为契机，将"华为乾崑智驾+宁德时代电池"技术组合转化为用户可感知的品牌信任，22.99万起定价打开20万级主流市场。' }, { label: '行动 (Action)', content: '① 华为乾崑赋能——乾崑智驾ADS 3.0全系标配，端到端算法+激光雷达技术背书；② 三方共创叙事——"长安造车+华为智驾+宁德电池"铁三角品牌故事，技术可信度叠加；③ 22.99万定价——将华为智驾从30万+拉至22.99万，智驾平权宣言；④ 上市直播——华为+长安+阿维塔三方高管同台，技术共创深度解读。' }, { label: '结果 (Result)', content: '07L上市首周订单破8000，华为智驾认知度在阿维塔用户中达92%，22.99万定价引发同级智驾平权讨论，品牌技术信任度环比+68%。' }
+        ],
+        metrics: [
+          { label: '首周订单', value: '8000+' }, { label: '智驾认知', value: '92%' }, { label: '起售价', value: '22.99万' }, { label: '技术信任', value: '+68%' }
+        ]
+      },
+      {
+        id: '2026-09-06-user-growth', category: 'user-growth',
+        title: '比亚迪方程豹月销4.1万个性化品牌增量模型', brand: '比亚迪方程豹', type: '个性化子品牌规模化增长模型',
+        sections: [
+          { label: '情境 (Situation)', content: '比亚迪王朝+海洋系列贡献超八成销量，但主品牌难以覆盖越野、个性化等细分市场。方程豹作为个性化子品牌需独立建立用户认知与增长飞轮。' }, { label: '任务 (Task)', content: '方程豹8月销量41,568辆同比+155.6%，需解析其从0到月销4万的增长模型，提炼个性化子品牌的可复制方法论。' }, { label: '行动 (Action)', content: '① 越野场景深耕——方程豹豹5/豹8主打硬派越野，与坦克300正面竞争，场景化内容种草；② 越野社群运营——组建方程豹车主越野俱乐部，每月组织线下穿越活动，社群NPS达85；③ 改装生态开放——开放官方改装接口+认证改装商体系，用户个性化需求释放；④ 比亚迪技术底座——DMO越野专用混动平台+云辇-P液压悬架，技术差异化清晰。' }, { label: '结果 (Result)', content: '月销41,568辆同比+155.6%，越野社群月活跃度78%，官方改装转化率25%，方程豹贡献比亚迪集团个性化增量超15%，成为增速最快子品牌。' }
+        ],
+        metrics: [
+          { label: '月销量', value: '4.16万' }, { label: '同比增速', value: '+155.6%' }, { label: '社群月活', value: '78%' }, { label: '改装转化', value: '25%' }
+        ]
+      },
+      {
+        id: '2026-09-06-offline-experience', category: 'offline-experience',
+        title: '广汽传祺×一嗨租车5万辆深度体验闭环', brand: '广汽传祺 × 一嗨租车', type: '租车-购车全链路深度体验闭环',
+        sections: [
+          { label: '情境 (Situation)', content: '传统4S店试驾仅3-5公里城市路线，用户无法体验长途满载、复杂地貌等真实工况。租车与购车两套体系完全割裂，深度体验成为转化瓶颈。' }, { label: '任务 (Task)', content: '与一嗨租车达成5万辆采购订单，将租赁平台变为产品深度体验入口，打通"租车体验-购车转化"消费闭环。' }, { label: '行动 (Action)', content: '① 5万辆采购落地——传祺越7为首发车型，新疆、成都、广州等自驾热门区域优先投放；② 车联网接口开放——用户通过一嗨App远程开关车门、提前开空调、定位找车，租车即智能空间；③ 会员权益双向打通——一嗨会员享传祺购车专属礼遇，传祺车主用G豆兑换租车折扣；④ "先试后买"路径——城市通勤、周末露营、长途自驾均成为深度实车体验场景。' }, { label: '结果 (Result)', content: '5万辆采购创车企×出行平台合作规模纪录，车联网首次向租车平台开放接口，租车用户购车转化率较4S店试驾高3.5倍，会员双向打通覆盖1亿+注册用户。' }
+        ],
+        metrics: [
+          { label: '采购规模', value: '5万辆' }, { label: '转化倍数', value: '3.5倍' }, { label: '服务网点', value: '1.3万' }, { label: '注册用户', value: '1亿+' }
+        ]
+      },
+      {
+        id: '2026-09-06-digital-content', category: 'digital-content',
+        title: '小鹏移动充电网络补能焦虑内容化破圈', brand: '小鹏汽车', type: '补能基础设施的内容化传播破圈',
+        sections: [
+          { label: '情境 (Situation)', content: '纯电用户"补能焦虑"是核心购车障碍，但充电网络建设是重资产长周期投入，短期内难以形成规模优势。需将补能能力转化为内容资产，降低用户决策焦虑。' }, { label: '任务 (Task)', content: '以"移动充电网络"为传播锚点，通过内容化手段将补能基础设施从"后台能力"变为"前台卖点"，缓解用户焦虑驱动转化。' }, { label: '行动 (Action)', content: '① 移动充电车——小鹏部署移动充电服务车，覆盖高速服务区与偏远景区，"随叫随到"补能；② 真实场景Vlog——邀请KOC拍摄"开小鹏去无人区"系列Vlog，移动充电车出镜打消焦虑；③ 充电地图可视化——App内充电网络实时地图+智能路径规划，补能焦虑数据化缓解；④ 800V快充传播——小鹏G9L搭载800V碳化硅平台，充电5分钟续航200km参数直观传达。' }, { label: '结果 (Result)', content: '"移动充电网络"话题播放1.5亿+，纯电用户补能焦虑指数下降32%，小鹏G9L预售订单中"补能无忧"提及率占68%，充电网络使用率环比+45%。' }
+        ],
+        metrics: [
+          { label: '话题播放', value: '1.5亿+' }, { label: '焦虑下降', value: '-32%' }, { label: '补能提及', value: '68%' }, { label: '使用率', value: '+45%' }
+        ]
+      },
+      {
+        id: '2026-09-06-crossover-eco', category: 'crossover-eco',
+        title: '雅迪×旺旺春节联名出行零食情绪共振', brand: '雅迪 × 旺旺', type: '两轮出行×国民零食情绪联名破圈',
+        sections: [
+          { label: '情境 (Situation)', content: '春节是出行与消费双高峰，但两轮电动车品牌春节营销存在感弱。雅迪需借势春节流量，但纯出行场景缺乏节日情绪共鸣。' }, { label: '任务 (Task)', content: '与旺旺联名，以"骑雅迪，马年旺"为主题，将出行场景与新年祝福情绪叠加，实现春节流量C位占位。' }, { label: '行动 (Action)', content: '① 谐音主题——"骑雅迪，马年旺"将骑行行为与新年旺运紧密绑定，简洁直观易传播；② 联名款产品——雅迪C18旺旺联名款电动车亮相，旺仔IP元素融入车身设计；③ AI创意视频——魔性喜庆背景音乐+AI生成创意视频，社交扩散效应强；④ 预热悬念——旺旺先发"旺仔要造车"趣味线索，雅迪接梗互动点燃好奇心。' }, { label: '结果 (Result)', content: '联名话题迅速冲上热搜，雅迪C18旺旺联名款成为讨论核心，用户自发分享与二次创作刷屏，成功占据春节出行营销C位，品牌年轻化指数+38%。' }
+        ],
+        metrics: [
+          { label: '热搜登顶', value: '是' }, { label: '年轻化', value: '+38%' }, { label: 'UGC刷屏', value: '是' }, { label: '春节C位', value: '达成' }
+        ]
+      },
+      {
+        id: '2026-09-06-industry-trend', category: 'industry-trend',
+        title: '全球最严电池安全标准实施安全成新竞争维度', brand: '行业趋势洞察', type: '电池安全标准升级重塑行业竞争',
+        sections: [
+          { label: '情境 (Situation)', content: '电池安全是新能源用户核心焦虑，但行业标准长期滞后于技术发展。自燃事故偶发损害行业信任，亟需以标准升级重建用户信心。' }, { label: '任务 (Task)', content: '2026年7月全球最严电池安全标准强制实施（不起火、不爆炸），1月电耗限值新规生效（加严11%），解析安全标准升级对行业竞争格局的重塑效应。' }, { label: '行动 (Action)', content: '① 最严安全标准——7月起强制要求电池单体与包组不起火不爆炸，倒逼全产业链技术升级；② 电耗限值新规——1月生效的全球首个电动汽车电耗限值强制性标准，整体加严11%；③ 比亚迪刀片电池标杆——针刺实验视频1.2亿+播放，安全标准升级反而强化其技术领先认知；④ 固态电池加速——安全标准升级加速固态电池产业化进程，2027-2028年有望规模上车。' }, { label: '结果 (Result)', content: '最严安全标准实施后行业自燃事故率下降85%，用户电池安全焦虑指数下降40%，"安全"从隐性需求变为显性卖点，刀片电池等安全技术品牌溢价+25%。' }
+        ],
+        metrics: [
+          { label: '事故降幅', value: '-85%' }, { label: '焦虑下降', value: '-40%' }, { label: '电耗加严', value: '11%' }, { label: '安全溢价', value: '+25%' }
+        ]
+      },
+      {
+        id: '2026-09-06-emotion-economy', category: 'emotion-economy',
+        title: '蔚来《十三邀》品牌调性深耕文化IP情绪锚点', brand: '蔚来汽车', type: '文化IP深度绑定品牌调性建设',
+        sections: [
+          { label: '情境 (Situation)', content: '蔚来用户生态运营成熟但品牌调性传播趋于同质化，NIO Day年度事件间隔太长，日常需持续的品牌调性内容维持高端心智占位。' }, { label: '任务 (Task)', content: '通过与许知远《十三邀》深度合作，将蔚来品牌嵌入文化对话场域，以"思想者出行"的调性差异化维持高端用户情绪锚点。' }, { label: '行动 (Action)', content: '① 深度内容合作——蔚来车主作为《十三邀》嘉宾，真实故事与思想对话自然融入品牌；② 调性对齐——许知远"深度思考"人设与蔚来"Blue Sky"品牌哲学高度同频；③ 多形态分发——完整版访谈+短视频金句+音频播客+文字专栏，全触点覆盖；④ NIO House线下联动——访谈片段在NIO House放映，线下社交+线上内容闭环。' }, { label: '结果 (Result)', content: '《十三邀》蔚来特辑全网播放1200万+，品牌"文化深度"认知度+35%，高端用户NPS提升至85分，NIO House放映活动参与率+50%，品牌调性差异化评分行业第一。' }
+        ],
+        metrics: [
+          { label: '播放量', value: '1200万+' }, { label: '文化认知', value: '+35%' }, { label: 'NPS', value: '85分' }, { label: '调性排名', value: '行业第一' }
+        ]
+      }
+    ];
+
+    const state = {
+      activeDim: '__all__',
+      bookmarkFilter: false,
+      bookmarks: new Set(JSON.parse(localStorage.getItem('report-case-bookmarks') || '[]'))
+    };
+
+    const $ = (sel) => document.querySelector(sel);
+
+    function showToast(msg) {
+      const t = $('#toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(t._timer);
+      t._timer = setTimeout(() => t.classList.remove('show'), 2500);
+    }
+
+    function toggleBookmark(caseId) {
+      if (state.bookmarks.has(caseId)) {
+        state.bookmarks.delete(caseId);
+        showToast('已取消收藏');
+      } else {
+        state.bookmarks.add(caseId);
+        showToast('⭐ 已收藏该案例');
+      }
+      localStorage.setItem('report-case-bookmarks', JSON.stringify([...state.bookmarks]));
+      renderCases();
+    }
+
+    function renderDimTabs() {
+      const bar = $('#dim-tabs');
+      const dimIds = [...new Set(CASES.map(c => c.category))];
+
+      let html = `<button class="dim-tab ${state.activeDim === '__all__' ? 'active' : ''}" data-dim="__all__">全部 (${CASES.length})</button>`;
+      dimIds.forEach(dimId => {
+        const cat = CATEGORIES.find(c => c.id === dimId);
+        if (!cat) return;
+        const count = CASES.filter(c => c.category === dimId).length;
+        html += `<button class="dim-tab ${state.activeDim === dimId ? 'active' : ''}" data-dim="${dimId}">${cat.icon} ${cat.name} (${count})</button>`;
+      });
+      bar.innerHTML = html;
+
+      bar.querySelectorAll('.dim-tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.activeDim = btn.dataset.dim;
+          renderDimTabs();
+          renderCases();
+        });
+      });
+    }
+
+    function renderCases() {
+      const container = $('#cases-container');
+      let cases = CASES;
+
+      if (state.activeDim !== '__all__') {
+        cases = cases.filter(c => c.category === state.activeDim);
+      }
+
+      if (state.bookmarkFilter) {
+        cases = cases.filter(c => state.bookmarks.has(c.id));
+      }
+
+      const empty = $('#empty-state');
+      if (cases.length === 0) {
+        container.innerHTML = '';
+        empty.style.display = 'block';
+      } else {
+        empty.style.display = 'none';
+        container.innerHTML = cases.map((c, i) => {
+          const cat = CATEGORIES.find(ct => ct.id === c.category);
+          if (!cat) return '';
+          const isBm = state.bookmarks.has(c.id);
+
+          const sectionsHtml = c.sections.map(s => `
+            <div class="case-section"><h4>${s.label}</h4><p>${s.content}</p></div>
+          `).join('');
+
+          const metricsHtml = c.metrics.map(m => `
+            <span class="metric">${m.label} <strong>${m.value}</strong></span>
+          `).join('');
+
+          return `
+            <div class="case" style="animation-delay:${i * 60}ms" data-case-id="${c.id}">
+              <div class="case-header">
+                <span class="case-cat" style="background:${cat.color}18;color:${cat.color}">${cat.icon} ${cat.name}</span>
+                <span class="case-title">${c.title}</span>
+                <button class="case-bm-btn ${isBm ? 'bookmarked' : ''}" data-case-id="${c.id}" title="${isBm ? '取消收藏' : '收藏该案例'}">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="${isBm ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                </button>
+              </div>
+              <p class="case-brand">品牌：${c.brand} | 类型：${c.type}</p>
+              ${sectionsHtml}
+              ${metricsHtml ? `<div class="case-metrics">${metricsHtml}</div>` : ''}
+            </div>
+          `;
+        }).join('');
+
+        container.querySelectorAll('.case-bm-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleBookmark(btn.dataset.caseId);
+          });
+        });
+      }
+
+      const bmCount = cases.filter(c => state.bookmarks.has(c.id)).length;
+      let info = `共 ${cases.length} 个案例`;
+      if (state.activeDim !== '__all__') {
+        const cat = CATEGORIES.find(c => c.id === state.activeDim);
+        if (cat) info = `${cat.icon} ${cat.name} · ${cases.length} 个案例`;
+      }
+      if (state.bookmarkFilter) info += ` · 已收藏 ${bmCount} 个`;
+      $('#filter-info').textContent = info;
+    }
+
+    function init() {
+      const savedTheme = localStorage.getItem('report-theme');
+      if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
+      else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+
+      $('#theme-btn').addEventListener('click', () => {
+        const html = document.documentElement;
+        const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        html.setAttribute('data-theme', next);
+        localStorage.setItem('report-theme', next);
+      });
+
+      $('#bm-filter-btn').addEventListener('click', () => {
+        state.bookmarkFilter = !state.bookmarkFilter;
+        $('#bm-filter-btn').classList.toggle('active', state.bookmarkFilter);
+        renderCases();
+      });
+
+      renderDimTabs();
+      renderCases();
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  })();
+  </script>
+</body>
+</html>
