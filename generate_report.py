@@ -732,29 +732,103 @@ def generate_case_with_llm(dim_info, search_results):
         resp_json = resp.json()
         content = None
 
+        # ---- 诊断：记录choices结构 ----
+        choices = resp_json.get("choices", [])
+        if choices:
+            msg = choices[0].get("message", {})
+            finish_reason = choices[0].get("finish_reason", "unknown")
+            msg_keys = list(msg.keys()) if isinstance(msg, dict) else "non-dict"
+            print(f"    📋 choices[0].message keys: {msg_keys}, finish_reason: {finish_reason}")
+            # 诊断关键字段值
+            if isinstance(msg, dict):
+                content_val = msg.get("content")
+                reasoning_val = msg.get("reasoning_content")
+                tool_calls_val = msg.get("tool_calls")
+                print(f"    📋 content={'<None>' if content_val is None else f'<len={len(str(content_val))}>'}")
+                if reasoning_val:
+                    print(f"    📋 reasoning_content: <len={len(str(reasoning_val))}>")
+                if tool_calls_val:
+                    print(f"    📋 tool_calls: {len(tool_calls_val)} calls")
+        else:
+            print(f"    ⚠️ 响应无choices，顶层keys: {list(resp_json.keys())}")
+
         # 格式1：标准OpenAI格式 choices[0].message.content
         try:
             content = resp_json["choices"][0]["message"]["content"]
         except (KeyError, IndexError, TypeError):
             pass
 
+        # 格式1b：DeepSeek Reasoner模型 — reasoning_content字段
+        #    deepseek-reasoner将推理过程放在reasoning_content，最终答案在content
+        #    但某些版本content为空，reasoning_content包含完整JSON
+        if not content or not content.strip():
+            try:
+                reasoning_content = resp_json["choices"][0]["message"]["reasoning_content"]
+                if reasoning_content and reasoning_content.strip():
+                    # reasoning_content通常包含推理过程，末尾可能有JSON
+                    # 尝试从中提取JSON（找最后一个{...}块）
+                    print(f"    ℹ️ 尝试从reasoning_content提取内容...")
+                    # 先直接尝试把整个reasoning_content当JSON解析
+                    rc_stripped = reasoning_content.strip()
+                    # 如果reasoning_content末尾包含JSON对象，提取它
+                    last_brace = rc_stripped.rfind('}')
+                    first_brace = rc_stripped.find('{')
+                    if first_brace >= 0 and last_brace > first_brace:
+                        candidate = rc_stripped[first_brace:last_brace+1]
+                        try:
+                            import json as _json
+                            test = _json.loads(candidate)
+                            if isinstance(test, dict) and "title" in test:
+                                content = candidate
+                                print(f"    ✅ 从reasoning_content成功提取JSON（长度{len(candidate)}）")
+                        except _json.JSONDecodeError:
+                            pass
+                    # 如果没提取到JSON，把reasoning_content当作纯文本使用
+                    if not content:
+                        content = reasoning_content
+                        print(f"    ℹ️ 使用reasoning_content作为原始内容（长度{len(reasoning_content)}）")
+            except (KeyError, IndexError, TypeError):
+                pass
+
+        # 格式1c：模型返回tool_calls而非content（某些DeepSeek版本行为）
+        if (not content or not content.strip()) and choices:
+            try:
+                tool_calls = resp_json["choices"][0]["message"].get("tool_calls", [])
+                if tool_calls:
+                    # 从tool_calls的function.arguments中提取内容
+                    for tc in tool_calls:
+                        fn = tc.get("function", {})
+                        args = fn.get("arguments", "")
+                        if args and args.strip():
+                            content = args
+                            print(f"    ℹ️ 从tool_calls[{tc.get('id','')}]提取内容（长度{len(args)}）")
+                            break
+            except (KeyError, IndexError, TypeError):
+                pass
+
         # 格式2：Anthropic格式 content[0].text
-        if not content:
+        if not content or not content.strip():
             try:
                 for block in resp_json.get("content", []):
                     if block.get("type") == "text":
-                        content = block.get("text", "")
-                        if content:
+                        text_val = block.get("text", "")
+                        if text_val and text_val.strip():
+                            content = text_val
                             break
             except (KeyError, TypeError):
                 pass
 
         # 格式3：直接在response中
-        if not content:
+        if not content or not content.strip():
             content = resp_json.get("content", "") or resp_json.get("text", "")
 
         if not content or not content.strip():
-            print(f"    ⚠️ LLM返回空内容，响应键: {list(resp_json.keys())}")
+            # 最终诊断：打印完整message对象帮助排查
+            if choices:
+                msg_obj = choices[0].get("message", {})
+                print(f"    ⚠️ LLM返回空内容，完整message: {json.dumps(msg_obj, ensure_ascii=False)[:500]}")
+            else:
+                print(f"    ⚠️ LLM返回空内容，响应键: {list(resp_json.keys())}")
             return None
 
         # 预处理：去除BOM、零宽字符、首尾空白
@@ -1015,20 +1089,33 @@ def build_simple_case(dim_info, search_results, date_str):
             all_snippets.append(s)
 
     # ---- 构建STAR结构化内容 ----
+    # 核心原则：宁可引用搜索原文，也不用泛化模板填充。
+    # 每个section必须包含搜索结果中的实质信息，禁止"XX维度创新策略"等空话。
 
     # 情境 (Situation)：从搜索摘要中提取行业背景
+    # 优先使用snippet原文，其次综合多条摘要，最后才用标题推断
+    situation = ""
     if snippet and len(snippet) > 30:
         situation = sanitize_text(snippet[:200], remove_urls=True)
-    elif all_snippets:
-        situation = all_snippets[0][:200]
-    else:
-        # 从标题中提取关键信息构建情境
-        situation = f"{brand}在{dim_info['name']}领域面临市场竞争与用户需求升级的双重挑战，需通过差异化策略建立竞争优势。"
+    if not situation and all_snippets:
+        # 拼接前2条摘要的关键句
+        sit_parts = []
+        for s in all_snippets[:2]:
+            # 取第一句（句号前）
+            first_sent = s.split('。')[0].strip()
+            if first_sent and len(first_sent) > 15:
+                sit_parts.append(first_sent)
+        if sit_parts:
+            situation = '。'.join(sit_parts) + '。'
+    if not situation:
+        # 从标题推断，但必须包含标题中的具体事实
+        situation = f"近期{title}，行业格局与用户需求持续演变。"
 
     # 任务 (Task)：从标题和摘要中推演核心挑战
+    # 优先从摘要中提取含"挑战/问题/目标"的句子，否则从标题+品牌推断具体任务
     task_hints = []
     for s in all_snippets[:3]:
-        for kw in ["挑战", "问题", "痛点", "需求", "压力", "困境", "不足", "缺乏", "转型", "升级"]:
+        for kw in ["挑战", "问题", "痛点", "需求", "压力", "困境", "不足", "缺乏", "转型", "升级", "目标", "旨在", "致力于"]:
             idx = s.find(kw)
             if idx > 0:
                 start = max(0, s.rfind('。', 0, idx) + 1)
@@ -1040,38 +1127,50 @@ def build_simple_case(dim_info, search_results, date_str):
 
     if task_hints:
         task = sanitize_text(task_hints[0][:200], remove_urls=True)
+    elif all_snippets:
+        # 从第一条摘要中提取核心问题（取含品牌名或关键动词的句子）
+        for s in all_snippets[:2]:
+            sentences = s.split('。')
+            for sent in sentences:
+                sent = sent.strip()
+                if len(sent) > 15 and (brand in sent or any(v in sent for v in ["推出", "发布", "上线", "启动", "开展", "布局", "投入"])):
+                    task = sent + '。'
+                    break
+            if task and task != f"{brand}需通过{dim_info['name']}维度的创新策略，在激烈竞争中实现差异化突破与用户价值提升。":
+                break
+        else:
+            # 用标题中的具体动作构建任务（而非泛化"创新策略"）
+            task = f"{brand}围绕「{title[:30]}」推进{dim_info['name']}维度落地。"
     else:
-        # 从标题中提取核心动作构建任务
-        task = f"{brand}需通过{dim_info['name']}维度的创新策略，在激烈竞争中实现差异化突破与用户价值提升。"
+        task = f"{brand}围绕「{title[:30]}」推进{dim_info['name']}维度落地。"
 
     # 行动 (Action)：从多条搜索结果中综合行动策略，用①②③编号
+    # 核心改进：直接引用搜索摘要中的具体行动描述，而非泛化"多元化策略"
     action_parts = []
-    for i, s in enumerate(all_snippets[:4]):
-        # 移除URL和来源标记
+    for i, r in enumerate(search_results[:4]):
+        s = r.get("snippet", "") or r.get("title", "")
+        # 清洗
         s = _URL_RE.sub('', s)
         s = re.sub(r'(?:来源|URL|链接|Source)[：:]\s*', '', s)
         s = re.sub(r'\*+', '', s)  # 移除所有*号
-        s = s.strip()
-        if s and len(s) > 15:
-            # 截取关键行动信息（每条30-60字）
-            if len(s) > 80:
-                # 在逗号或句号处截断
-                cut_pos = 0
-                for sep in ['，', '；', '。']:
-                    p = s[:80].rfind(sep)
-                    if p > 20:
-                        cut_pos = p
-                        break
-                if cut_pos:
-                    s = s[:cut_pos]
-                else:
-                    s = s[:60]
+        s = sanitize_text(s, remove_urls=True)
+        if s and len(s) > 10:
+            # 截取关键行动信息（每条30-80字，保留更多细节）
+            if len(s) > 120:
+                # 在句号处截断，保留完整句意
+                cut_pos = s[:100].rfind('。')
+                if cut_pos < 20:
+                    cut_pos = s[:100].rfind('，')
+                if cut_pos < 20:
+                    cut_pos = 80
+                s = s[:cut_pos + 1] if s[cut_pos] in '。' else s[:cut_pos]
             action_parts.append(f"{'①②③④'[i]} {s}")
 
     if action_parts:
         action = "\n".join(action_parts)
     else:
-        action = f"{brand}已采取多元化策略推进{dim_info['name']}维度布局。"
+        # 最后回退：用标题作为行动描述（至少有具体事实）
+        action = f"① {title}"
 
     # 结果 (Result)：尝试从摘要中提取数据化成效，禁止泛化结尾
     result_data = []
@@ -1087,14 +1186,15 @@ def build_simple_case(dim_info, search_results, date_str):
     if result_data:
         result = f"相关举措已取得显著成效：{'；'.join(result_data[:3])}。"
     elif all_snippets:
-        # 从摘要中找含"成效""成果""效果"的句子
+        # 从摘要中找含成效关键词的句子
         found_result = False
         for s in all_snippets:
-            for kw in ["成效", "成果", "效果", "提升", "增长", "突破", "完成", "实现"]:
+            for kw in ["成效", "成果", "效果", "提升", "增长", "突破", "完成", "实现", "达到", "突破", "超过"]:
                 if kw in s:
                     result = sanitize_text(s[:200], remove_urls=True)
                     # 确保不以泛化结尾结束
-                    for ending in ["为后续深化运营奠定了基础", "已初见成效", "呈现积极增长态势"]:
+                    for ending in ["为后续深化运营奠定了基础", "已初见成效", "呈现积极增长态势",
+                                   "为后续发展奠定了基础", "取得阶段性进展"]:
                         if result.endswith(ending):
                             result = result[:-len(ending)].rstrip('，。；') + '。'
                     found_result = True
@@ -1102,9 +1202,14 @@ def build_simple_case(dim_info, search_results, date_str):
             if found_result:
                 break
         if not found_result:
-            result = f"相关举措在{dim_info['name']}维度取得阶段性进展。"
+            # 用搜索摘要中的最后一条作为结果（比"取得阶段性进展"更有实质内容）
+            last_snippet = all_snippets[-1][:150] if all_snippets else ""
+            if last_snippet and len(last_snippet) > 20:
+                result = sanitize_text(last_snippet, remove_urls=True)
+            else:
+                result = f"相关举措持续推进中，具体成效待后续数据验证。"
     else:
-        result = f"相关举措在{dim_info['name']}维度取得阶段性进展。"
+        result = f"相关举措持续推进中，具体成效待后续数据验证。"
 
     # ---- 仅构建4个STAR section（对齐9月3日标准，无"可迁移点"）----
     sections = [
