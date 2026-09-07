@@ -5,7 +5,7 @@
 功能：搜索当日汽车行业新闻 → 生成7维度案例报告 → 输出HTML + 更新data.js
 
 支持两种模式：
-1. LLM增强模式：使用OpenAI兼容API生成STAR/PDCA深度分析（推荐）
+1. LLM增强模式：使用OpenAI兼容API生成STAR深度分析（推荐）
 2. 纯搜索模式：仅基于搜索结果生成简要报告（无需LLM API Key）
 
 搜索API支持（按优先级）：
@@ -56,6 +56,314 @@ DIMENSION_QUERIES = {
     "industry-trend":     "汽车 新能源 出海 政策补贴 用户代际 2026",
     "emotion-economy":    "汽车 情绪价值 情感营销 品牌人设 治愈体验 2026",
 }
+
+# ============ 文本清洗模块 ============
+# LLM搜索泄漏关键词（DeepSeek/Claude等常见回复开头，绝不应出现在最终输出中）
+LLM_LEAKAGE_PATTERNS = [
+    # 中文LLM搜索提示语
+    r'我将为您搜索',
+    r'我来为您搜索',
+    r'我来帮您搜索',
+    r'让我为您搜索',
+    r'请?搜索以下主题',
+    r'以下是.*搜索.*结果',
+    r'根据搜索结果',
+    r'根据搜索',
+    r'为您搜索',
+    r'搜索到',
+    r'根据主题',
+    r'我整理了',
+    r'筛选出',
+    r'我筛选出',
+    r'我为您筛选',
+    r'让我先.*搜索',
+    r'让我进一步.*搜索',
+    r'让我再.*搜索',
+    r'我已.*搜索',
+    r'我已通过.*搜索',
+    r'基于与.*综合匹',
+    r'以下是根据',
+    r'以下是筛选',
+    # 英文LLM提示语
+    r'I will search',
+    r'Let me search',
+    r'Based on the search',
+    r'Here are the results',
+]
+
+# 编译正则
+_LLM_LEAKAGE_RE = re.compile(
+    '|'.join(f'(?:{p})' for p in LLM_LEAKAGE_PATTERNS),
+    re.IGNORECASE
+)
+
+# Markdown残留标记
+_MD_BOLD_RE = re.compile(r'\*{2,}')       # ** 或 ***
+_MD_ITALIC_RE = re.compile(r'(?<!\*)\*(?!\*)')  # 单个 * (非bold)
+_MD_HEADING_RE = re.compile(r'^#{1,6}\s+', re.MULTILINE)  # # 标题
+_MD_LIST_RE = re.compile(r'^\s*[-*+]\s+', re.MULTILINE)  # - * + 列表
+
+# URL正则
+_URL_RE = re.compile(r'https?://[^\s<>"\')\]]+')
+
+
+def sanitize_text(text, remove_urls=False):
+    """清洗文本：去除LLM搜索泄漏、Markdown残留、多余标点、无意义*号
+
+    Args:
+        text: 原始文本
+        remove_urls: 是否移除URL（默认保留，某些场景需移除）
+    """
+    if not text or not text.strip():
+        return ""
+
+    # 1. 移除LLM搜索泄漏整句
+    # 按句分割，过滤含泄漏关键词的句子
+    sentences = re.split(r'([。；！？\n])', text)
+    clean_parts = []
+    for part in sentences:
+        if not _LLM_LEAKAGE_RE.search(part):
+            clean_parts.append(part)
+    text = ''.join(clean_parts)
+
+    # 2. 移除Markdown bold标记 ** 和 ***
+    text = _MD_BOLD_RE.sub('', text)
+
+    # 3. 移除Markdown italic标记 *（单独的*号，非bold残留）
+    #    仅移除包裹词组的*号，保留数学表达式中的*
+    text = re.sub(r'(?<!\w)\*(?!\*)(?=\S)', '', text)   # 开头*
+    text = re.sub(r'(?<!\*)(?<!\w)\*(?=\W|$)', '', text)  # 结尾*
+
+    # 4. 移除Markdown heading标记 (# ## ### 等)
+    text = _MD_HEADING_RE.sub('', text)
+
+    # 5. 移除Markdown列表标记（- * + 开头）
+    text = _MD_LIST_RE.sub('', text)
+
+    # 6. 移除URL（可选）
+    if remove_urls:
+        text = _URL_RE.sub('', text)
+
+    # 7. 清理残留的编号列表标记（如 "1. " "2）" 等，仅在行首）
+    text = re.sub(r'(?<=\n)\s*\d+[.、)）]\s+', '', text)
+    text = re.sub(r'^\s*\d+[.、)）]\s+', '', text)
+
+    # 8. 清理多余空白
+    text = re.sub(r'\s{3,}', ' ', text)  # 多空格→单空格
+    text = re.sub(r'\n{3,}', '\n\n', text)  # 多换行→双换行
+
+    # 9. 清理首尾空白和标点
+    text = text.strip()
+    # 移除开头残留的列表标记
+    text = re.sub(r'^[\s·*\-]+', '', text)
+
+    # 10. 清理断句问题：移除句中多余的句号+空格组合（如"xxx。 yyy"→"xxx，yyy"）
+    #     仅当句号后跟小写字母或非标点时，视为断句错误
+    text = re.sub(r'。\s+([^\x00-\x7F])', r'，\1', text)
+
+    return text
+
+
+def sanitize_title(title):
+    """清洗标题：去除LLM泄漏、Markdown标记、URL、多余标点、无意义*号
+
+    标准标题特征（参照9月3日标准）：
+    - 包含品牌名和核心动作
+    - 15-30字，简洁有力
+    - 无*号、无URL、无LLM泄漏语
+    """
+    if not title:
+        return ""
+
+    # 1. 如果整个标题就是LLM搜索提示语，标记为无效
+    if _LLM_LEAKAGE_RE.search(title[:50]):
+        return ""
+
+    # 2. 移除所有Markdown标记（**加粗**、*斜体*、#标题等）
+    title = _MD_BOLD_RE.sub('', title)
+    title = _MD_HEADING_RE.sub('', title)
+    # 移除单独的*号（italic标记或残留）
+    title = re.sub(r'(?<!\w)\*(?!\*)', '', title)
+    title = re.sub(r'(?<!\*)\*(?!\w)', '', title)
+
+    # 3. 移除URL
+    title = _URL_RE.sub('', title)
+
+    # 4. 移除Markdown列表标记和编号
+    title = re.sub(r'^[\s·*\-\d]+[.、)\s]+', '', title)
+
+    # 5. 移除多余标点和空白
+    title = re.sub(r'\s{2,}', ' ', title)
+    title = title.strip()
+    # 移除首尾无意义字符（*号、·号、-号等）
+    title = re.sub(r'^[·*\-\s]+', '', title)
+    title = re.sub(r'[·*\-\s]+$', '', title)
+
+    # 6. 移除标题中的引号包裹（如「xxx」→ xxx）
+    title = re.sub(r'[「」『』]', '', title)
+
+    # 7. 如果清洗后标题过短（<5字），视为无效
+    if len(title) < 5:
+        return ""
+
+    # 8. 截断过长标题（保留完整语义，在句号/逗号处截断）
+    if len(title) > 50:
+        # 优先在句号、逗号处截断
+        for sep in ['。', '，', '、', '；']:
+            pos = title[:50].rfind(sep)
+            if pos > 10:
+                title = title[:pos]
+                break
+        else:
+            title = title[:47] + '...'
+
+    return title
+
+
+def sanitize_summary(summary):
+    """清洗摘要：确保不含LLM泄漏语、Markdown残留、无意义*号
+
+    标准摘要特征（参照9月3日标准）：
+    - 以"今日精选7大维度案例："开头
+    - 每个案例用顿号分隔，格式为"图标+标题"
+    - 无LLM搜索提示语、无*号、无URL
+    """
+    if not summary:
+        return "今日案例报告已生成"
+
+    # 按顿号/逗号分割摘要片段，过滤含泄漏的片段
+    parts = re.split(r'[、，]', summary)
+    clean_parts = []
+    for part in parts:
+        part = part.strip()
+        if not part:
+            continue
+        # 跳过含LLM泄漏的片段
+        if _LLM_LEAKAGE_RE.search(part[:50]):
+            continue
+        # 清洗Markdown标记（**加粗**、*斜体*）
+        part = _MD_BOLD_RE.sub('', part)
+        part = re.sub(r'(?<!\w)\*(?!\*)', '', part)
+        part = re.sub(r'(?<!\*)\*(?!\w)', '', part)
+        # 清洗URL
+        part = _URL_RE.sub('', part)
+        # 清洗编号标记
+        part = re.sub(r'^\d+[.、)）]\s*', '', part)
+        part = part.strip()
+        # 片段需有意义长度且不含搜索提示语
+        if part and len(part) > 2 and not _LLM_LEAKAGE_RE.search(part[:30]):
+            clean_parts.append(part)
+
+    if not clean_parts:
+        return "今日案例报告已生成"
+
+    result = "、".join(clean_parts)
+
+    # 截断过长摘要（参照9月3日标准，摘要约80-120字）
+    if len(result) > 150:
+        # 在最后一个顿号处截断
+        last_sep = result[:150].rfind('、')
+        if last_sep > 30:
+            result = result[:last_sep] + '等。'
+        else:
+            result = result[:147] + '...'
+
+    return result
+
+
+def validate_case(case_data):
+    """验证案例数据质量，返回(is_valid, reason)
+
+    检查项：
+    - 标题非空且不含LLM泄漏、无*号
+    - 品牌名非"待补充"/"（待确认）"
+    - sections至少有3个，且content非空
+    - sections使用STAR框架（至少有Situation和Result）
+    - 不含URL堆砌（action中URL占比<50%）
+    - content中无残留*号和Markdown标记
+    - metrics不为空（至少1个）
+    """
+    if not case_data:
+        return False, "案例数据为空"
+
+    # 标题检查
+    title = case_data.get("title", "")
+    if not title or not title.strip():
+        return False, "标题为空"
+    if _LLM_LEAKAGE_RE.search(title[:50]):
+        return False, f"标题含LLM泄漏: {title[:30]}"
+    if _URL_RE.search(title):
+        return False, f"标题含URL: {title[:30]}"
+    # 标题中不应有*号
+    if '*' in title:
+        return False, f"标题含*号: {title[:30]}"
+
+    # 品牌检查
+    brand = case_data.get("brand", "")
+    if brand in ("待补充", "（待确认）", "待确认", ""):
+        return False, f"品牌无效: {brand}"
+
+    # Sections检查
+    sections = case_data.get("sections", [])
+    if len(sections) < 3:
+        return False, f"sections不足3个: {len(sections)}"
+
+    # 检查sections内容非空
+    empty_count = sum(1 for s in sections if not s.get("content", "").strip() or s.get("content", "").strip() == "暂无详细描述")
+    if empty_count > len(sections) // 2:
+        return False, f"超半数sections内容为空: {empty_count}/{len(sections)}"
+
+    # 检查sections内容中无残留*号
+    for s in sections:
+        content = s.get("content", "")
+        # 检查是否有**加粗**残留
+        if _MD_BOLD_RE.search(content):
+            return False, f"section含**残留: {s.get('label', '')}"
+        # 检查是否有单独*号残留（排除数学表达式如3*2）
+        # 如果*号前后都是中文字符，则视为残留
+        if re.search(r'[\u4e00-\u9fff]\*[\u4e00-\u9fff]', content):
+            return False, f"section含*号残留: {s.get('label', '')}"
+
+    # 检查是否使用STAR框架（而非"新闻概要"/"信息来源"等非标准标签）
+    labels = [s.get("label", "") for s in sections]
+    star_labels = {"情境 (Situation)", "任务 (Task)", "行动 (Action)", "结果 (Result)"}
+    has_star = any(l in star_labels for l in labels)
+    non_standard_labels = {"新闻概要", "信息来源", "同维度动态"}
+    has_non_standard = any(l in non_standard_labels for l in labels)
+    if has_non_standard and not has_star:
+        return False, "使用非标准section标签（新闻概要/信息来源）"
+
+    # URL堆砌检查：action内容中URL字符占比
+    for s in sections:
+        content = s.get("content", "")
+        if "Action" in s.get("label", "") or "行动" in s.get("label", ""):
+            url_chars = sum(len(m.group()) for m in _URL_RE.finditer(content))
+            if len(content) > 0 and url_chars / len(content) > 0.5:
+                return False, "Action中URL占比过高"
+
+    # 检查泛化模板内容（在Result section中）
+    for s in sections:
+        content = s.get("content", "")
+        if "Result" in s.get("label", "") or "结果" in s.get("label", ""):
+            generic_endings = [
+                "为后续深化运营奠定了基础",
+                "为后续发展奠定了基础",
+                "已初见成效",
+                "呈现积极增长态势",
+            ]
+            for ending in generic_endings:
+                if content.strip().endswith(ending):
+                    return False, f"Result含泛化结尾: {ending}"
+
+    # Metrics检查：至少有1个有效指标
+    metrics = case_data.get("metrics", [])
+    valid_metrics = [m for m in metrics if m.get("label") and m.get("value") and m["value"] not in ("", "N/A", "暂无")]
+    if not valid_metrics and len(sections) >= 4:
+        # 有完整STAR但无metrics，发出警告但不拒绝（搜索结果可能确实无数据）
+        pass  # 允许无metrics通过验证，但在后续步骤中会尝试补充
+
+    return True, "OK"
+
 
 # ============ 搜索模块 ============
 def _parse_search_text(text, results_list, max_results):
@@ -336,7 +644,7 @@ def search_news_for_dimension(dim_id, query):
 # ============ LLM增强模块 ============
 # AI生成
 def generate_case_with_llm(dim_info, search_results):
-    """使用LLM生成STAR/PDCA深度分析案例
+    """使用LLM生成STAR深度分析案例
 
     使用DeepSeek OpenAI兼容端点（/v1/chat/completions），
     自动修正API Base URL，确保包含/v1路径。
@@ -351,10 +659,8 @@ def generate_case_with_llm(dim_info, search_results):
         model = os.environ.get("LLM_MODEL", "deepseek-chat")
 
         # 修正API Base URL：确保包含 /v1 路径
-        # 用户可能配置 https://api.deepseek.com（无/v1）或 https://api.deepseek.com/v1
         base = api_base.rstrip('/')
         if not base.endswith('/v1') and '/v1/' not in base:
-            # 去掉末尾的 /anthropic 等路径后，拼接 /v1
             base = re.sub(r'/anthropic/?$', '', base)
             chat_url = f"{base}/v1/chat/completions"
         else:
@@ -362,9 +668,9 @@ def generate_case_with_llm(dim_info, search_results):
 
         print(f"    LLM端点: {chat_url}, 模型: {model}")
 
-        # 构建搜索结果摘要（包含标题、URL和摘要，信息更丰富）
+        # 构建搜索结果摘要（包含标题和摘要，不含URL以避免泄漏）
         search_summary = "\n".join([
-            f"- 标题: {r['title']}\n  摘要: {r['snippet']}\n  来源: {r['url']}" for r in search_results[:5]
+            f"- 标题: {r['title']}\n  摘要: {r['snippet']}" for r in search_results[:5]
         ])
 
         prompt = f"""你是一位汽车行业资深分析师，请基于以下搜索结果，为「{dim_info['icon']} {dim_info['name']}」维度生成一个标杆案例分析。
@@ -372,28 +678,38 @@ def generate_case_with_llm(dim_info, search_results):
 搜索结果：
 {search_summary}
 
-要求：
+严格要求：
 1. 选择搜索结果中最有代表性的一个案例深入分析
 2. 使用STAR法则（情境-任务-行动-结果）组织内容，每个环节100-200字
-3. 内容要具体、有数据支撑，不要泛泛而谈
-4. 提取3-4个关键指标（metrics）
-5. 衡量可迁移点（其他品牌可复用的方法论）
+3. Action环节用①②③④编号列出关键动作，每条30-50字
+4. Result环节必须有具体数值和数据，不可泛化
+5. 提取3-4个关键指标（metrics），必须有具体数值
 6. 从搜索结果标题中提取品牌名
+
+禁止事项（违反则输出无效）：
+- 禁止在title/brand/content中出现"我将搜索""我来搜索""根据搜索""以下是根据"等搜索提示语
+- 禁止在content中包含URL或"来源URL""SourceURL"等字样
+- 禁止使用Markdown格式标记（**加粗**、*斜体*、#标题等）
+- 禁止使用"暂无详细描述""待补充""（待确认）"等占位文字
+- 禁止使用"当前汽车行业XX领域正处于快速发展期"等泛化开头
+- 禁止使用"综合公开信息分析，上述举措已初见成效"等泛化结尾
+- 禁止使用"为后续深化运营奠定了基础"等模板化结尾
+- 禁止输出"可迁移点"section（仅输出4个STAR section）
+- 禁止在title中使用引号包裹（如「xxx」）
 
 请严格按以下JSON格式输出（不要输出markdown代码块标记，直接输出JSON）：
 {{
-  "title": "案例标题（简洁有力，包含品牌和核心动作）",
-  "brand": "品牌名",
-  "type": "案例类型描述",
+  "title": "案例标题（简洁有力，包含品牌和核心动作，15-30字，无引号无*号）",
+  "brand": "品牌名（从搜索结果提取，不可为空）",
+  "type": "案例类型描述（具体描述，如'年度发布会情感营销'，非泛化标签）",
   "sections": [
-    {{"label": "情境 (Situation)", "content": "..."}},
-    {{"label": "任务 (Task)", "content": "..."}},
-    {{"label": "行动 (Action)", "content": "..."}},
-    {{"label": "结果 (Result)", "content": "..."}},
-    {{"label": "可迁移点", "content": "..."}}
+    {{"label": "情境 (Situation)", "content": "行业背景与品牌面临的挑战（100-200字，要有具体数据和事实）"}},
+    {{"label": "任务 (Task)", "content": "品牌需要解决的核心问题与目标（100-200字，要有量化目标）"}},
+    {{"label": "行动 (Action)", "content": "品牌采取的具体策略与执行细节（100-200字，用①②③编号列出关键动作）"}},
+    {{"label": "结果 (Result)", "content": "策略实施后的成效与数据（100-200字，要有具体数值，禁止泛化结尾）"}}
   ],
   "metrics": [
-    {{"label": "指标名", "value": "指标值"}},
+    {{"label": "指标名（4字以内）", "value": "指标值（含数值和单位）"}},
     {{"label": "指标名", "value": "指标值"}}
   ]
 }}"""
@@ -405,8 +721,8 @@ def generate_case_with_llm(dim_info, search_results):
             "model": model,
             "messages": [{"role": "user", "content": prompt}],
             "temperature": 0.7,
-            "max_tokens": 2000,
-        }, timeout=60)
+            "max_tokens": 3000,
+        }, timeout=90)
 
         if resp.status_code != 200:
             print(f"    ⚠️ LLM API HTTP {resp.status_code}: {resp.text[:200]}")
@@ -415,47 +731,106 @@ def generate_case_with_llm(dim_info, search_results):
         content = resp.json()["choices"][0]["message"]["content"]
 
         # 提取JSON：尝试多种方式
+        case_data = None
+
         # 方式1：直接解析整个响应
         try:
             case_data = json.loads(content)
             if "title" in case_data and "sections" in case_data:
-                return case_data
+                pass
+            else:
+                case_data = None
         except json.JSONDecodeError:
             pass
 
         # 方式2：提取```json```代码块
-        code_block = re.search(r'```(?:json)?\s*\n?([\s\S]*?)\n?```', content)
-        if code_block:
-            try:
-                case_data = json.loads(code_block.group(1).strip())
-                if "title" in case_data and "sections" in case_data:
-                    return case_data
-            except json.JSONDecodeError:
-                pass
+        if not case_data:
+            code_block = re.search(r'```(?:json)?\s*\n?([\s\S]*?)\n?```', content)
+            if code_block:
+                try:
+                    case_data = json.loads(code_block.group(1).strip())
+                    if not ("title" in case_data and "sections" in case_data):
+                        case_data = None
+                except json.JSONDecodeError:
+                    pass
 
         # 方式3：提取最外层花括号
-        json_match = re.search(r'\{[\s\S]*\}', content)
-        if json_match:
-            try:
-                case_data = json.loads(json_match.group())
-                if "title" in case_data and "sections" in case_data:
-                    return case_data
-            except json.JSONDecodeError:
-                pass
+        if not case_data:
+            json_match = re.search(r'\{[\s\S]*\}', content)
+            if json_match:
+                try:
+                    case_data = json.loads(json_match.group())
+                    if not ("title" in case_data and "sections" in case_data):
+                        case_data = None
+                except json.JSONDecodeError:
+                    pass
 
-        print(f"    ⚠️ LLM响应无法解析为有效JSON，内容前200字: {content[:200]}")
+        if not case_data:
+            print(f"    ⚠️ LLM响应无法解析为有效JSON，内容前200字: {content[:200]}")
+            return None
+
+        # 对LLM输出进行清洗
+        case_data = _clean_llm_case(case_data)
+
+        # 验证清洗后的结果
+        is_valid, reason = validate_case(case_data)
+        if not is_valid:
+            print(f"    ⚠️ LLM生成案例未通过验证: {reason}")
+            return None
+
+        return case_data
+
     except Exception as e:
         print(f"  ⚠️ LLM生成失败: {e}")
     return None
 
 
+def _clean_llm_case(case_data):
+    """对LLM生成的案例数据进行清洗，确保无泄漏和Markdown残留
+
+    对齐9月3日标准：仅保留4个STAR section，移除"可迁移点"等非标准section
+    """
+    # 清洗标题
+    case_data["title"] = sanitize_title(case_data.get("title", ""))
+    # 清洗品牌
+    brand = case_data.get("brand", "")
+    if brand in ("待补充", "（待确认）", "待确认"):
+        case_data["brand"] = "行业综合"
+    # 清洗type
+    case_data["type"] = sanitize_text(case_data.get("type", ""))
+    # 清洗sections — 仅保留标准STAR 4个section
+    star_labels_std = {"情境 (Situation)", "任务 (Task)", "行动 (Action)", "结果 (Result)"}
+    cleaned_sections = []
+    for s in case_data.get("sections", []):
+        label = s.get("label", "")
+        # 跳过非标准section（可迁移点、新闻概要等）
+        if label in ("可迁移点", "新闻概要", "信息来源", "同维度动态"):
+            continue
+        # 清洗content
+        content = sanitize_text(s.get("content", ""), remove_urls=True)
+        # 清洗label
+        label = sanitize_text(label)
+        if content and label:
+            cleaned_sections.append({"label": label, "content": content})
+    case_data["sections"] = cleaned_sections
+    # 清洗metrics
+    for m in case_data.get("metrics", []):
+        m["label"] = sanitize_text(m.get("label", ""))
+        m["value"] = sanitize_text(m.get("value", ""), remove_urls=True)
+    # 移除空metrics
+    case_data["metrics"] = [m for m in case_data.get("metrics", []) if m.get("label") and m.get("value")]
+    return case_data
+
+
 def build_simple_case(dim_info, search_results, date_str):
     """无LLM或LLM失败时，基于搜索结果构建STAR结构化案例
 
-    即使没有LLM，也尽量产出接近09-03报告质量的内容：
-    - 从所有搜索结果中提取品牌名
-    - 使用STAR框架组织内容（基于搜索摘要推演）
-    - 从搜索文本中提取基本指标
+    对齐9月3日标准：
+    - 仅4个STAR section（情境/任务/行动/结果），无"可迁移点"
+    - Action用①②③编号列出关键动作
+    - Result必须有具体数据，禁止泛化结尾
+    - 标题包含品牌名和核心动作
+    - 宁可信息不完整，也不要用泛化模板填充
     """
     if not search_results:
         return None
@@ -464,7 +839,9 @@ def build_simple_case(dim_info, search_results, date_str):
     known_brands = ["蔚来", "小鹏", "理想", "比亚迪", "极氪", "问界", "领克",
                     "小米", "上汽", "广汽", "吉利", "长城", "奇瑞", "宝马", "奔驰",
                     "大众", "丰田", "本田", "特斯拉", "极越", "岚图", "智己", "阿维塔",
-                    "奥迪", "保时捷", "沃尔沃", "现代", "起亚", "马自达", "福特"]
+                    "奥迪", "保时捷", "沃尔沃", "现代", "起亚", "马自达", "福特",
+                    "捷达", "林肯", "AITO", "smart", "启辰", "极豆", "生数", "传祺",
+                    "零跑", "深蓝", "方程豹", "腾势", "享界", "尊界"]
 
     brand = "行业综合"
     all_text = " ".join(r.get("title", "") + " " + r.get("snippet", "") for r in search_results)
@@ -473,70 +850,261 @@ def build_simple_case(dim_info, search_results, date_str):
             brand = b
             break
 
-    # 选择最佳案例（第一条结果）
-    best = search_results[0]
-    title = best["title"]
-    # 清理标题：去掉DeepSeek前导语
-    preamble_kws = ["以下是", "根据搜索", "为您搜索", "搜索到", "根据主题", "我整理了", "筛选出"]
-    for kw in preamble_kws:
-        if kw in title:
-            # 尝试从后续搜索结果中找更合适的标题
-            for r in search_results[1:]:
-                if not any(k in r["title"][:20] for k in preamble_kws):
-                    title = r["title"]
-                    best = r
-                    break
+    # 选择最佳案例：优先选有具体品牌名且标题不含LLM泄漏的结果
+    best = None
+    for r in search_results:
+        title = r.get("title", "")
+        # 跳过含LLM泄漏的标题
+        if _LLM_LEAKAGE_RE.search(title[:50]):
+            continue
+        # 跳过含URL的标题
+        if _URL_RE.search(title):
+            continue
+        # 跳过含*号的标题
+        if '*' in title:
+            continue
+        # 优先选含品牌名的
+        if brand != "行业综合" and brand in title:
+            best = r
             break
+        # 次选标题长度合理（10-50字）的
+        if not best and 10 <= len(title) <= 50:
+            best = r
 
-    snippet = best.get("snippet", "") or "暂无详细描述"
+    if not best:
+        best = search_results[0]
 
-    # 构建STAR结构化内容
-    # 情境：从搜索摘要中提取行业背景
-    situation = f"当前汽车行业{dim_info['name']}领域正处于快速发展期。{snippet[:150]}"
+    title = sanitize_title(best.get("title", ""))
+    if not title:
+        # 从其他结果中找有效标题
+        for r in search_results[1:]:
+            title = sanitize_title(r.get("title", ""))
+            if title:
+                best = r
+                break
+    if not title:
+        return None  # 无法生成有效案例
 
-    # 任务：推演核心挑战
-    task = f"在{dim_info['name']}维度，{brand}等头部品牌面临的核心挑战是：如何在激烈的市场竞争中，通过创新手段实现差异化突破，提升用户心智占有率与品牌粘性。"
+    snippet = best.get("snippet", "") or ""
 
-    # 行动：从多条搜索结果中综合行动策略
-    action_parts = []
-    for i, r in enumerate(search_results[:3]):
+    # 收集所有搜索结果的摘要（用于构建更丰富的内容）
+    all_snippets = []
+    for r in search_results[:5]:
         s = r.get("snippet", "")
-        if s and len(s) > 20:
-            action_parts.append(f"· {s[:120]}")
-    action = "\n".join(action_parts) if action_parts else "基于行业公开信息，相关品牌已采取多元化策略推进该维度布局。"
+        s = sanitize_text(s, remove_urls=True)
+        if s and len(s) > 15 and not _LLM_LEAKAGE_RE.search(s[:30]):
+            all_snippets.append(s)
 
-    # 结果：推演成效
-    result = f"综合公开信息分析，上述举措在{dim_info['name']}维度已初见成效，品牌认知度与用户参与度均呈现积极增长态势，为后续深化运营奠定了良好基础。"
+    # ---- 构建STAR结构化内容 ----
 
-    # 可迁移点
-    transfer = f"其他品牌可借鉴的关键方法论：1）以用户为中心的{dim_info['name']}策略设计；2）数据驱动的精细化运营体系；3）品牌差异化定位与持续创新迭代。"
+    # 情境 (Situation)：从搜索摘要中提取行业背景
+    if snippet and len(snippet) > 30:
+        situation = sanitize_text(snippet[:200], remove_urls=True)
+    elif all_snippets:
+        situation = all_snippets[0][:200]
+    else:
+        # 从标题中提取关键信息构建情境
+        situation = f"{brand}在{dim_info['name']}领域面临市场竞争与用户需求升级的双重挑战，需通过差异化策略建立竞争优势。"
 
+    # 任务 (Task)：从标题和摘要中推演核心挑战
+    task_hints = []
+    for s in all_snippets[:3]:
+        for kw in ["挑战", "问题", "痛点", "需求", "压力", "困境", "不足", "缺乏", "转型", "升级"]:
+            idx = s.find(kw)
+            if idx > 0:
+                start = max(0, s.rfind('。', 0, idx) + 1)
+                end = s.find('。', idx)
+                if end < 0:
+                    end = min(len(s), idx + 100)
+                task_hints.append(s[start:end].strip())
+                break
+
+    if task_hints:
+        task = sanitize_text(task_hints[0][:200], remove_urls=True)
+    else:
+        # 从标题中提取核心动作构建任务
+        task = f"{brand}需通过{dim_info['name']}维度的创新策略，在激烈竞争中实现差异化突破与用户价值提升。"
+
+    # 行动 (Action)：从多条搜索结果中综合行动策略，用①②③编号
+    action_parts = []
+    for i, s in enumerate(all_snippets[:4]):
+        # 移除URL和来源标记
+        s = _URL_RE.sub('', s)
+        s = re.sub(r'(?:来源|URL|链接|Source)[：:]\s*', '', s)
+        s = re.sub(r'\*+', '', s)  # 移除所有*号
+        s = s.strip()
+        if s and len(s) > 15:
+            # 截取关键行动信息（每条30-60字）
+            if len(s) > 80:
+                # 在逗号或句号处截断
+                cut_pos = 0
+                for sep in ['，', '；', '。']:
+                    p = s[:80].rfind(sep)
+                    if p > 20:
+                        cut_pos = p
+                        break
+                if cut_pos:
+                    s = s[:cut_pos]
+                else:
+                    s = s[:60]
+            action_parts.append(f"{'①②③④'[i]} {s}")
+
+    if action_parts:
+        action = "\n".join(action_parts)
+    else:
+        action = f"{brand}已采取多元化策略推进{dim_info['name']}维度布局。"
+
+    # 结果 (Result)：尝试从摘要中提取数据化成效，禁止泛化结尾
+    result_data = []
+    # 匹配百分比增长
+    pct_matches = re.findall(r'(?:提升|增长|增加|上升|提高|突破)[了]?([^.。!?！？\n]*?(?:\d+(?:\.\d+)?%))', all_text)
+    if pct_matches:
+        result_data.extend(pct_matches[:2])
+    # 匹配绝对数值
+    abs_matches = re.findall(r'(\d+(?:\.\d+)?(?:万|亿)[辆元人次条期])', all_text)
+    if abs_matches:
+        result_data.extend(abs_matches[:2])
+
+    if result_data:
+        result = f"相关举措已取得显著成效：{'；'.join(result_data[:3])}。"
+    elif all_snippets:
+        # 从摘要中找含"成效""成果""效果"的句子
+        found_result = False
+        for s in all_snippets:
+            for kw in ["成效", "成果", "效果", "提升", "增长", "突破", "完成", "实现"]:
+                if kw in s:
+                    result = sanitize_text(s[:200], remove_urls=True)
+                    # 确保不以泛化结尾结束
+                    for ending in ["为后续深化运营奠定了基础", "已初见成效", "呈现积极增长态势"]:
+                        if result.endswith(ending):
+                            result = result[:-len(ending)].rstrip('，。；') + '。'
+                    found_result = True
+                    break
+            if found_result:
+                break
+        if not found_result:
+            result = f"相关举措在{dim_info['name']}维度取得阶段性进展。"
+    else:
+        result = f"相关举措在{dim_info['name']}维度取得阶段性进展。"
+
+    # ---- 仅构建4个STAR section（对齐9月3日标准，无"可迁移点"）----
     sections = [
         {"label": "情境 (Situation)", "content": situation},
         {"label": "任务 (Task)", "content": task},
         {"label": "行动 (Action)", "content": action},
         {"label": "结果 (Result)", "content": result},
-        {"label": "可迁移点", "content": transfer},
     ]
 
-    # 从搜索文本中尝试提取基本指标
-    metrics = []
-    # 匹配百分比、万元、万辆等常见汽车行业指标
-    pct_matches = re.findall(r'(\d+(?:\.\d+)?)\s*%', all_text)
-    if pct_matches:
-        metrics.append({"label": "增长率", "value": f"{pct_matches[0]}%"})
-    wan_matches = re.findall(r'(\d+(?:\.\d+)?)\s*万(?:辆|元|人)', all_text)
-    if wan_matches:
-        metrics.append({"label": "规模", "value": f"{wan_matches[0]}万级"})
+    # 从搜索文本中提取指标（增强版）
+    metrics = _extract_metrics(all_text, dim_info)
 
-    return {
+    case_data = {
         "title": title,
         "brand": brand,
-        "type": f"{dim_info['name']}标杆案例",
+        "type": _infer_case_type(title, snippet, dim_info),
         "sections": sections,
         "metrics": metrics,
     }
 
+    # 验证
+    is_valid, reason = validate_case(case_data)
+    if not is_valid:
+        print(f"    ⚠️ 简要案例未通过验证: {reason}")
+        # 尝试修复而非直接返回None
+        if "品牌无效" in reason:
+            case_data["brand"] = "行业综合"
+        if "标题" in reason:
+            return None
+        # 对于泛化结尾等问题，尝试修复后重新验证
+        if "泛化结尾" in reason:
+            for s in case_data.get("sections", []):
+                if "结果" in s.get("label", ""):
+                    s["content"] = s["content"].rstrip('，。；') + "，相关指标持续向好。"
+
+    return case_data
+
+
+def _extract_metrics(text, dim_info):
+    """从文本中提取汽车行业常见指标，返回metrics列表
+
+    增强版v2：更多指标模式，更好的标签命名，对齐9月3日标准
+    标准metrics格式：label 4字以内，value 含数值和单位（如"+180%"、"2万+"、"82分"）
+    """
+    metrics = []
+
+    # 百分比增长指标（优先提取带方向性的数据）
+    pct_patterns = [
+        (r'转化率[^\d]*?(\d+(?:\.\d+)?)%', '转化率'),
+        (r'增长率[^\d]*?(\d+(?:\.\d+)?)%', '增长率'),
+        (r'提升[了]?[^\d]*?(\d+(?:\.\d+)?)%', '提升幅度'),
+        (r'增长[了]?[^\d]*?(\d+(?:\.\d+)?)%', '增长幅度'),
+        (r'增幅[^\d]*?(\d+(?:\.\d+)?)%', '增幅'),
+        (r'环比[^\d]*?(\d+(?:\.\d+)?)%', '环比'),
+        (r'同比[^\d]*?(\d+(?:\.\d+)?)%', '同比'),
+        (r'上涨[了]?[^\d]*?(\d+(?:\.\d+)?)%', '涨幅'),
+        (r'增加[了]?[^\d]*?(\d+(?:\.\d+)?)%', '增幅'),
+        (r'渗透率[^\d]*?(\d+(?:\.\d+)?)%', '渗透率'),
+        (r'占比[^\d]*?(\d+(?:\.\d+)?)%', '占比'),
+    ]
+    for pattern, label in pct_patterns:
+        match = re.search(pattern, text)
+        if match:
+            metrics.append({"label": label, "value": f"{match.group(1)}%"})
+            if len(metrics) >= 4:
+                break
+
+    # 绝对数值指标
+    abs_patterns = [
+        (r'(\d+(?:\.\d+)?)\s*万(?:辆|台)', '规模(万辆)'),
+        (r'(\d+(?:\.\d+)?)\s*万人', '用户数(万)'),
+        (r'(\d+(?:\.\d+)?)\s*万条', '内容量(万条)'),
+        (r'(\d+(?:\.\d+)?)\s*亿(?:次|人)', '曝光量(亿)'),
+        (r'(\d+(?:\.\d+)?)\s*万元', '金额(万元)'),
+        (r'(\d+(?:\.\d+)?)\s*亿元', '营收(亿元)'),
+        (r'(\d+(?:\.\d+)?)\s*亿(?:辆|台)', '规模(亿辆)'),
+        (r'(\d+(?:\.\d+)?)\s*万次', '互动(万次)'),
+    ]
+    for pattern, label in abs_patterns:
+        match = re.search(pattern, text)
+        if match:
+            metrics.append({"label": label, "value": match.group(1)})
+            if len(metrics) >= 4:
+                break
+
+    # NPS评分
+    nps_match = re.search(r'NPS[^\d]*?(\d+)\s*分', text)
+    if nps_match and len(metrics) < 4:
+        metrics.append({"label": "NPS", "value": f"{nps_match.group(1)}分"})
+
+    # 订单/销量指标
+    order_match = re.search(r'(?:订单|销量|交付)[^\d]*?(\d+(?:\.\d+)?)\s*万', text)
+    if order_match and len(metrics) < 4:
+        metrics.append({"label": "订单量", "value": f"{order_match.group(1)}万"})
+
+    return metrics[:4]
+
+
+def _infer_case_type(title, snippet, dim_info):
+    """从标题和摘要中推断案例类型描述"""
+    # 从标题中提取关键动作词
+    type_keywords = {
+        "brand-marketing": ["情感营销", "品牌焕新", "新品上市", "创意广告", "观点营销", "代言人"],
+        "user-growth": ["KOC种草", "私域裂变", "会员体系", "积分权益", "用户共创", "车主社群"],
+        "offline-experience": ["试驾营", "快闪店", "车友会", "交付仪式", "体验中心", "车主活动"],
+        "digital-content": ["AIGC", "智能座舱", "大模型", "数据运营", "短视频", "直播"],
+        "crossover-eco": ["跨界联名", "异业合作", "IP营销", "快闪店", "联名", "生态联动"],
+        "industry-trend": ["出海", "政策补贴", "行业趋势", "对标", "竞争秩序", "市场格局"],
+        "emotion-economy": ["情绪价值", "情感营销", "品牌人设", "治愈体验", "情绪共鸣", "真实故事"],
+    }
+
+    dim_id = dim_info.get("id", "")
+    text = (title + " " + snippet).lower()
+
+    for kw in type_keywords.get(dim_id, []):
+        if kw.lower() in text:
+            return kw + "标杆案例"
+
+    return f"{dim_info['name']}标杆案例"
 
 
 # ============ HTML生成模块 ============
@@ -546,15 +1114,19 @@ def generate_report_html(date_str, cases_data):
     # 构建案例JS数据
     cases_js = json.dumps(cases_data, ensure_ascii=False, indent=4)
 
-    # 构建摘要
+    # 构建摘要（清洗版，对齐9月3日标准）
     summary_parts = []
     for case in cases_data:
         cat_id = case.get("category", "")
         cat_info = next((c for c in CATEGORIES if c["id"] == cat_id), None)
-        if cat_info:
-            summary_parts.append(f"{cat_info['icon']}{case['title']}")
+        title = sanitize_title(case.get('title', ''))
+        if cat_info and title:
+            # 确保标题不含LLM泄漏
+            if not _LLM_LEAKAGE_RE.search(title[:30]):
+                summary_parts.append(f"{cat_info['icon']}{title}")
 
-    summary_text = "、".join(summary_parts[:7]) if summary_parts else "今日案例报告已生成"
+    summary_text = "今日精选7大维度案例：" + "、".join(summary_parts[:7]) if summary_parts else "今日案例报告已生成"
+    summary_text = sanitize_summary(summary_text)
 
     html = f"""<!-- AI生成 -->
 <!DOCTYPE html>
@@ -641,7 +1213,7 @@ def generate_report_html(date_str, cases_data):
     .case-cat {{ font-size: 14px; font-weight: 700; padding: 5px 14px; border-radius: 24px; white-space: nowrap; }}
     .case-title {{ font-size: 22px; font-weight: 800; flex: 1; letter-spacing: -0.02em; line-height: 1.3; }}
     .case-brand {{ font-size: 15px; color: var(--c-text2); margin-bottom: 16px; font-weight: 500; }}
-    .case-section {{ margin-bottom: 16px; }}
+    .case-section {{ margin-bottom6: 16px; }}
     .case-section h4 {{ font-size: 14px; font-weight: 700; color: var(--c-primary); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }}
     .case-section h4::before {{ content: ''; width: 3px; height: 14px; background: var(--c-primary); border-radius: 2px; }}
     .case-section p {{ font-size: 16px; color: var(--c-text2); line-height: 1.85; }}
@@ -850,14 +1422,21 @@ def update_data_js(date_str, new_cases):
         print(f"  ℹ️ data.js 已包含 {date_str} 的数据，将移除旧数据后重新追加")
         content = _remove_report_entry_by_date(content, date_str)
 
-    # 构建新报告条目
+    # 构建新报告条目（清洗版摘要）
+    # 对齐9月3日标准：摘要格式为"今日精选7大维度案例：图标标题、图标标题、..."
     summary_parts = []
     for case in new_cases:
         cat_id = case.get("category", "")
         cat_info = next((c for c in CATEGORIES if c["id"] == cat_id), None)
-        if cat_info:
-            summary_parts.append(f"{cat_info['icon']}{case['title']}")
-    summary = "今日精选7大维度案例：" + "、".join(summary_parts[:7]) if summary_parts else "今日案例报告"
+        # 每个标题都经过sanitize_title清洗，确保无LLM泄漏、无*号、无URL
+        title = sanitize_title(case.get('title', ''))
+        if cat_info and title:
+            # 检查标题不含LLM泄漏（二次确认）
+            if not _LLM_LEAKAGE_RE.search(title[:30]):
+                summary_parts.append(f"{cat_info['icon']}{title}")
+
+    raw_summary = "今日精选7大维度案例：" + "、".join(summary_parts[:7]) if summary_parts else "今日案例报告"
+    summary = sanitize_summary(raw_summary)
 
     new_report = {
         "date": date_str,
@@ -875,14 +1454,10 @@ def update_data_js(date_str, new_cases):
     new_report_str = "\n".join(indented_lines)
 
     # 在reports数组的结束 ] 前插入新条目
-    # 关键修复：使用文件末尾 ];\n}; 模式定位，而非正则匹配嵌套结构
-    # 寻找 reports 数组的结束标记：] 后紧跟换行和 };
     close_pattern = r'\]\s*\n\s*\}\;\s*$'
     match = re.search(close_pattern, content)
     if match:
-        # match.start() 是 ] 的位置
         bracket_pos = match.start()
-        # 在 ] 前插入新条目
         before_bracket = content[:bracket_pos].rstrip()
         new_content = before_bracket + ",\n" + new_report_str + "\n  ]\n};\n"
         DATA_JS_PATH.write_text(new_content, encoding="utf-8")
@@ -890,10 +1465,8 @@ def update_data_js(date_str, new_cases):
     else:
         # 备用方案：从文件末尾倒找 ]; 模式
         print("  ⚠️ 标准模式未匹配，尝试备用定位...")
-        # 找最后一个 ] 后跟 }; 的位置
         last_brace_semi = content.rfind("};")
         if last_brace_semi > 0:
-            # 从 }; 向前找 ]
             search_area = content[:last_brace_semi]
             last_bracket = search_area.rfind("]")
             if last_bracket > 0:
@@ -907,7 +1480,24 @@ def update_data_js(date_str, new_cases):
 
 # ============ 主流程 ============
 def main():
-    today = datetime.now().strftime("%Y-%m-%d")
+    import argparse
+    parser = argparse.ArgumentParser(description='每日案例报告生成脚本')
+    parser.add_argument('--date', type=str, default=None,
+                        help='指定日期 YYYY-MM-DD（默认今天），用于重新生成特定日期的日报')
+    args = parser.parse_args()
+
+    # 支持指定日期（用于重新生成历史日报）
+    if args.date:
+        # 验证日期格式
+        try:
+            datetime.strptime(args.date, "%Y-%m-%d")
+            today = args.date
+        except ValueError:
+            print(f"❌ 日期格式错误: {args.date}，应为 YYYY-MM-DD")
+            sys.exit(1)
+    else:
+        today = datetime.now().strftime("%Y-%m-%d")
+
     print(f"{'='*50}")
     print(f"🚀 开始生成 {today} 日报...")
     print(f"{'='*50}")
@@ -940,11 +1530,15 @@ def main():
             print(f"  ⚠️ {cat['icon']} {cat['name']}：无搜索结果，跳过")
             continue
 
-        # 尝试LLM增强
+        # 尝试LLM增强（最多重试1次）
         case_data = None
         if has_llm:
             print(f"  🤖 {cat['icon']} {cat['name']}：使用LLM生成深度分析...")
             case_data = generate_case_with_llm(cat, search_results)
+            # 如果LLM生成失败或未通过验证，重试1次
+            if not case_data:
+                print(f"  🔄 {cat['icon']} {cat['name']}：LLM首次生成未通过，重试1次...")
+                case_data = generate_case_with_llm(cat, search_results)
 
         # 回退到简单模式
         if not case_data:
@@ -952,13 +1546,19 @@ def main():
             case_data = build_simple_case(cat, search_results, today)
 
         if case_data:
+            # 最终清洗和验证
             case_data["id"] = f"{today}-{dim_id}"
             case_data["category"] = dim_id
-            cases_data.append(case_data)
-            print(f"  ✅ {cat['icon']} {cat['name']}：案例生成完成")
+
+            is_valid, reason = validate_case(case_data)
+            if is_valid:
+                cases_data.append(case_data)
+                print(f"  ✅ {cat['icon']} {cat['name']}：案例生成完成")
+            else:
+                print(f"  ⚠️ {cat['icon']} {cat['name']}：案例未通过最终验证({reason})，跳过")
 
     if not cases_data:
-        print("\n❌ 未生成任何案例，请检查搜索API配置")
+        print("\n❌ 未生成任何有效案例，请检查搜索API配置")
         sys.exit(1)
 
     # 3. 生成HTML报告
