@@ -140,7 +140,9 @@ def sanitize_text(text, remove_urls=False):
     # 5. 移除Markdown列表标记（- * + 开头）
     text = _MD_LIST_RE.sub('', text)
 
-    # 6. 移除URL（可选）
+    # 6. 移除"来源URL："/"来源："/"URL："等来源标签（无论是否移除URL本身，始终清理标签文字）
+    text = re.sub(r'(?:来源\s*URL|来源|Source\s*URL|Source|URL)[：:]\s*', '', text)
+    # 7. 移除URL（可选）
     if remove_urls:
         text = _URL_RE.sub('', text)
 
@@ -333,6 +335,30 @@ def validate_case(case_data):
     if has_non_standard and not has_star:
         return False, "使用非标准section标签（新闻概要/信息来源）"
 
+    # Situation中"来源URL"残留检查
+    for s in sections:
+        content = s.get("content", "")
+        if "Situation" in s.get("label", "") or "情境" in s.get("label", ""):
+            if re.search(r'(?:来源\s*URL|来源|URL)[：:]', content):
+                return False, "Situation含来源URL标签残留"
+            if content.strip() in ("来源URL：", "来源：", "URL：", ""):
+                return False, "Situation内容为空或仅为来源URL标签"
+
+    # Task/Action模板套话检查
+    template_phrases = [
+        r'需通过.+维度的创新策略，在激烈竞争中实现差异化突破与用户价值提升',
+        r'已采取多元化策略推进.+维度布局',
+        r'围绕「.+」推进.+维度落地',
+        r'相关举措在.+维度取得阶段性进展',
+    ]
+    for s in sections:
+        content = s.get("content", "")
+        label = s.get("label", "")
+        if "Task" in label or "任务" in label or "Action" in label or "行动" in label or "Result" in label or "结果" in label:
+            for tp in template_phrases:
+                if re.search(tp, content):
+                    return False, f"{label}含模板套话"
+
     # URL堆砌检查：action内容中URL字符占比
     for s in sections:
         content = s.get("content", "")
@@ -350,6 +376,7 @@ def validate_case(case_data):
                 "为后续发展奠定了基础",
                 "已初见成效",
                 "呈现积极增长态势",
+                "取得阶段性进展",
             ]
             for ending in generic_endings:
                 if content.strip().endswith(ending):
@@ -498,7 +525,7 @@ def search_with_deepseek_websearch(query, num_results=5):
             "messages": [
                 {
                     "role": "user",
-                    "content": f"请搜索以下主题的最新中文新闻，返回{num_results}条最相关的结果，每条包含标题、来源URL和摘要：\n\n{query}"
+                    "content": f"请搜索以下主题的最新中文新闻，返回{num_results}条最相关的结果，每条包含标题和摘要：\n\n{query}"
                 }
             ],
         }, timeout=60)
@@ -668,9 +695,9 @@ def generate_case_with_llm(dim_info, search_results):
 
         print(f"    LLM端点: {chat_url}, 模型: {model}")
 
-        # 构建搜索结果摘要（包含标题和摘要，不含URL以避免泄漏）
+        # 构建搜索结果摘要（清洗标题和摘要，去除来源URL标签/LLM泄漏/Markdown残留）
         search_summary = "\n".join([
-            f"- 标题: {r['title']}\n  摘要: {r['snippet']}" for r in search_results[:5]
+            f"- 标题: {sanitize_title(r['title'])}\n  摘要: {sanitize_text(r['snippet'], remove_urls=True)}" for r in search_results[:5]
         ])
 
         prompt = f"""你是一位汽车行业资深分析师，请基于以下搜索结果，为「{dim_info['icon']} {dim_info['name']}」维度生成一个标杆案例分析。
@@ -1114,8 +1141,13 @@ def build_simple_case(dim_info, search_results, date_str):
 
     # 情境 (Situation)：从搜索摘要中提取行业背景
     # 优先使用snippet原文，其次综合多条摘要，最后才用标题推断
+    # 关键修复：先对snippet做来源URL标签清洗，避免"来源URL："残留
+    clean_snippet = sanitize_text(snippet, remove_urls=True) if snippet else ""
     situation = ""
-    if snippet and len(snippet) > 30:
+    if clean_snippet and len(clean_snippet) > 20:
+        situation = clean_snippet[:200]
+    elif snippet and len(snippet) > 30:
+        # snippet清洗后可能变短，但仍尝试使用
         situation = sanitize_text(snippet[:200], remove_urls=True)
     if not situation and all_snippets:
         # 拼接前2条摘要的关键句
@@ -1157,11 +1189,16 @@ def build_simple_case(dim_info, search_results, date_str):
                 if len(sent) > 15 and (brand in sent or any(v in sent for v in ["推出", "发布", "上线", "启动", "开展", "布局", "投入"])):
                     task = sent + '。'
                     break
-            if task and task != f"{brand}需通过{dim_info['name']}维度的创新策略，在激烈竞争中实现差异化突破与用户价值提升。":
+            if task:
                 break
-        # 如果for循环未找到有效task，用标题构建
+        # 如果for循环未找到有效task，从摘要首句构建（比模板套话更有实质内容）
         if not task:
-            task = f"{brand}围绕「{title[:30]}」推进{dim_info['name']}维度落地。"
+            # 从第一条摘要取首句作为task（至少有搜索结果的实质信息）
+            first_sent = all_snippets[0].split('。')[0].strip() if all_snippets else ""
+            if first_sent and len(first_sent) > 10:
+                task = f"{brand}面临的核心挑战：{first_sent}。"
+            else:
+                task = f"{brand}围绕「{title[:30]}」推进{dim_info['name']}维度落地。"
     else:
         task = f"{brand}围绕「{title[:30]}」推进{dim_info['name']}维度落地。"
 
