@@ -714,6 +714,10 @@ def generate_case_with_llm(dim_info, search_results):
   ]
 }}"""
 
+        # DeepSeek Reasoner模型需要更多token输出完整JSON
+        # finish_reason=length 表示输出被截断，需要增大max_tokens
+        max_output_tokens = 8000 if "reasoner" in model.lower() else 3000
+
         resp = requests.post(chat_url, headers={
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
@@ -721,8 +725,8 @@ def generate_case_with_llm(dim_info, search_results):
             "model": model,
             "messages": [{"role": "user", "content": prompt}],
             "temperature": 0.7,
-            "max_tokens": 3000,
-        }, timeout=90)
+            "max_tokens": max_output_tokens,
+        }, timeout=120)
 
         if resp.status_code != 200:
             print(f"    ⚠️ LLM API HTTP {resp.status_code}: {resp.text[:200]}")
@@ -760,33 +764,49 @@ def generate_case_with_llm(dim_info, search_results):
 
         # 格式1b：DeepSeek Reasoner模型 — reasoning_content字段
         #    deepseek-reasoner将推理过程放在reasoning_content，最终答案在content
-        #    但某些版本content为空，reasoning_content包含完整JSON
+        #    但某些版本content为空，reasoning_content可能包含完整JSON或仅含思考过程
         if not content or not content.strip():
             try:
                 reasoning_content = resp_json["choices"][0]["message"]["reasoning_content"]
                 if reasoning_content and reasoning_content.strip():
-                    # reasoning_content通常包含推理过程，末尾可能有JSON
-                    # 尝试从中提取JSON（找最后一个{...}块）
                     print(f"    ℹ️ 尝试从reasoning_content提取内容...")
-                    # 先直接尝试把整个reasoning_content当JSON解析
                     rc_stripped = reasoning_content.strip()
-                    # 如果reasoning_content末尾包含JSON对象，提取它
-                    last_brace = rc_stripped.rfind('}')
-                    first_brace = rc_stripped.find('{')
-                    if first_brace >= 0 and last_brace > first_brace:
-                        candidate = rc_stripped[first_brace:last_brace+1]
-                        try:
-                            import json as _json
-                            test = _json.loads(candidate)
-                            if isinstance(test, dict) and "title" in test:
-                                content = candidate
-                                print(f"    ✅ 从reasoning_content成功提取JSON（长度{len(candidate)}）")
-                        except _json.JSONDecodeError:
-                            pass
-                    # 如果没提取到JSON，把reasoning_content当作纯文本使用
-                    if not content:
-                        content = reasoning_content
-                        print(f"    ℹ️ 使用reasoning_content作为原始内容（长度{len(reasoning_content)}）")
+
+                    # 策略1：用_extract_json_from_llm_response尝试提取（支持多种JSON格式）
+                    rc_json = _extract_json_from_llm_response(rc_stripped)
+                    if rc_json:
+                        content = json.dumps(rc_json, ensure_ascii=False)
+                        print(f"    ✅ 从reasoning_content成功提取JSON（长度{len(content)}）")
+                    else:
+                        # 策略2：reasoning_content可能被截断（finish_reason=length），
+                        # 尝试找最后一个完整JSON对象（从后往前找}匹配{）
+                        last_brace = rc_stripped.rfind('}')
+                        if last_brace > 0:
+                            # 从最后的}往前找匹配的{
+                            depth = 0
+                            start_pos = last_brace
+                            while start_pos >= 0:
+                                if rc_stripped[start_pos] == '}':
+                                    depth += 1
+                                elif rc_stripped[start_pos] == '{':
+                                    depth -= 1
+                                    if depth == 0:
+                                        break
+                                start_pos -= 1
+                            if start_pos >= 0 and depth == 0:
+                                candidate = rc_stripped[start_pos:last_brace+1]
+                                try:
+                                    test = json.loads(candidate)
+                                    if isinstance(test, dict) and "title" in test:
+                                        content = candidate
+                                        print(f"    ✅ 从reasoning_content尾部提取到JSON（长度{len(candidate)}）")
+                                except json.JSONDecodeError:
+                                    pass
+
+                        # 如果仍然没提取到JSON，说明reasoning_content只是思考过程
+                        # 不要把它当作content传给解析器（思考过程不是JSON，只会导致误导日志）
+                        if not content:
+                            print(f"    ⚠️ reasoning_content仅含思考过程，无有效JSON（长度{len(rc_stripped)}）")
             except (KeyError, IndexError, TypeError):
                 pass
 
@@ -1125,6 +1145,7 @@ def build_simple_case(dim_info, search_results, date_str):
                 task_hints.append(s[start:end].strip())
                 break
 
+    task = None  # 初始化，避免UnboundLocalError
     if task_hints:
         task = sanitize_text(task_hints[0][:200], remove_urls=True)
     elif all_snippets:
@@ -1138,8 +1159,8 @@ def build_simple_case(dim_info, search_results, date_str):
                     break
             if task and task != f"{brand}需通过{dim_info['name']}维度的创新策略，在激烈竞争中实现差异化突破与用户价值提升。":
                 break
-        else:
-            # 用标题中的具体动作构建任务（而非泛化"创新策略"）
+        # 如果for循环未找到有效task，用标题构建
+        if not task:
             task = f"{brand}围绕「{title[:30]}」推进{dim_info['name']}维度落地。"
     else:
         task = f"{brand}围绕「{title[:30]}」推进{dim_info['name']}维度落地。"
