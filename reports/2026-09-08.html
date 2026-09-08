@@ -1,0 +1,422 @@
+<!-- AI生成 -->
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>每日案例报告 · 2026-09-08</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --c-bg: #f8fafc; --c-surface: #ffffff; --c-text: #0f172a;
+      --c-text2: #475569; --c-text3: #94a3b8; --c-border: #e2e8f0;
+      --c-primary: #4f46e5; --c-primary-light: #818cf8; --c-primary-bg: #eef2ff;
+      --c-accent: #f59e0b;
+      --f-sans: "Inter", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      --g-primary: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #a855f7 100%);
+      --c-shadow: rgba(15,23,42,0.06);
+      --c-shadow-md: rgba(15,23,42,0.1);
+    }
+    [data-theme="dark"] {
+      --c-bg: #0c0f1a; --c-surface: #1a1f35; --c-text: #f1f5f9;
+      --c-text2: #cbd5e1; --c-text3: #64748b; --c-border: #2a3050;
+      --c-primary-bg: rgba(79,70,229,0.12); --c-shadow: rgba(0,0,0,0.25); --c-shadow-md: rgba(0,0,0,0.35);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--f-sans); color: var(--c-text); background: var(--c-bg);
+      line-height: 1.75; padding: 40px; max-width: 960px; margin: 0 auto;
+      -webkit-font-smoothing: antialiased;
+    }
+    button { cursor: pointer; border: none; background: none; font: inherit; color: inherit; }
+    .toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; gap: 16px; }
+    .back-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 20px; border-radius: 12px;
+      font-size: 15px; font-weight: 600; color: var(--c-text2);
+      border: 1px solid var(--c-border); background: var(--c-surface);
+      transition: all 0.2s ease; text-decoration: none;
+    }
+    .back-btn:hover { border-color: var(--c-primary-light); color: var(--c-primary); }
+    .toolbar-right { display: flex; align-items: center; gap: 10px; }
+    .theme-toggle-btn {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--c-text2); border: 1px solid var(--c-border); background: var(--c-surface);
+      font-size: 18px;
+    }
+    .report-header { margin-bottom: 32px; padding-bottom: 28px; border-bottom: 2px solid var(--c-border); }
+    h1 { font-size: 36px; font-weight: 900; margin-bottom: 12px; letter-spacing: -0.03em; line-height: 1.2; }
+    .date { font-size: 17px; color: var(--c-text2); font-weight: 500; }
+    .summary {
+      background: linear-gradient(135deg, #eef2ff 0%, #f0fdf4 50%, #fef3c7 100%);
+      border-radius: 20px; padding: 28px 32px; margin-bottom: 32px;
+      font-size: 17px; line-height: 1.85; border-left: 5px solid var(--c-primary);
+      box-shadow: 0 4px 16px rgba(79, 70, 229, 0.08);
+    }
+    [data-theme="dark"] .summary {
+      background: linear-gradient(135deg, rgba(79,70,229,0.1) 0%, rgba(16,185,129,0.08) 50%, rgba(245,158,11,0.08) 100%);
+    }
+    .summary strong { color: var(--c-primary); font-weight: 700; }
+    .dim-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 28px; padding-bottom: 16px; border-bottom: 1px solid var(--c-border); }
+    .dim-tab {
+      padding: 8px 18px; border-radius: 24px; font-size: 14px; font-weight: 600;
+      color: var(--c-text2); background: var(--c-surface); border: 1px solid var(--c-border);
+      cursor: pointer; white-space: nowrap; transition: all 0.2s ease;
+    }
+    .dim-tab:hover { border-color: var(--c-primary-light); color: var(--c-primary); background: var(--c-primary-bg); }
+    .dim-tab.active { background: var(--g-primary); color: white; border-color: transparent; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); }
+    .filter-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .filter-info { font-size: 14px; color: var(--c-text3); font-weight: 500; }
+    .case {
+      background: var(--c-surface); border-radius: 20px;
+      border: 1px solid var(--c-border); padding: 32px; margin-bottom: 24px;
+      box-shadow: 0 4px 16px var(--c-shadow); transition: all 0.3s ease;
+      animation: caseFadeIn 0.4s ease both; position: relative; overflow: hidden;
+    }
+    .case:hover { box-shadow: 0 8px 32px var(--c-shadow-md); transform: translateY(-2px); }
+    .case::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--g-primary); }
+    @keyframes caseFadeIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+    .case-header { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+    .case-cat { font-size: 14px; font-weight: 700; padding: 5px 14px; border-radius: 24px; white-space: nowrap; }
+    .case-title { font-size: 22px; font-weight: 800; flex: 1; letter-spacing: -0.02em; line-height: 1.3; }
+    .case-brand { font-size: 15px; color: var(--c-text2); margin-bottom: 16px; font-weight: 500; }
+    .case-section { margin-bottom: 16px; }
+    .case-section h4 { font-size: 14px; font-weight: 700; color: var(--c-primary); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .case-section h4::before { content: ''; width: 3px; height: 14px; background: var(--c-primary); border-radius: 2px; }
+    .case-section p { font-size: 16px; color: var(--c-text2); line-height: 1.85; }
+    .case-metrics { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+    .metric { background: var(--c-primary-bg); border-radius: 12px; padding: 10px 18px; font-size: 15px; font-weight: 500; border: 1px solid rgba(79,70,229,0.1); }
+    .metric strong { color: var(--c-primary); font-weight: 800; }
+    .empty-state { text-align: center; padding: 80px 20px; color: var(--c-text3); }
+    .empty-state .empty-icon { font-size: 56px; margin-bottom: 16px; }
+    .empty-state p { font-size: 20px; font-weight: 700; color: var(--c-text2); margin-bottom: 8px; }
+    .footer { text-align: center; color: var(--c-text3); font-size: 14px; margin-top: 56px; padding-top: 28px; border-top: 2px solid var(--c-border); }
+    .toast { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%) translateY(24px); background: var(--c-text); color: var(--c-bg); padding: 14px 28px; border-radius: 24px; font-size: 15px; font-weight: 600; z-index: 300; opacity: 0; visibility: hidden; transition: all 0.3s ease; box-shadow: 0 12px 32px rgba(0,0,0,0.25); white-space: nowrap; }
+    .toast.show { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
+    @media (max-width: 640px) { body { padding: 20px; } h1 { font-size: 28px; } .case { padding: 24px; } .case-title { font-size: 19px; } }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <a href="../index.html" class="back-btn">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      返回总览
+    </a>
+    <div class="toolbar-right">
+      <button class="theme-toggle-btn" id="theme-btn" title="切换主题">🌓</button>
+    </div>
+  </div>
+
+  <div class="report-header">
+    <h1>📊 每日案例报告</h1>
+    <p class="date">2026-09-08 · 汽车行业七维洞察</p>
+  </div>
+
+  <div class="summary">
+    <strong>今日摘要：</strong>今日精选7大维度案例：🚗宝马用象棋演绎无感刹停、🎯蔚来公布NIO Day 2026城市申办投票结果、武汉以1.78亿票胜出、🎪尚界Z7/Z7T首批交付仪式暨潮流快闪活动在上海举行、📱当"超强躯体"遇上"超强大脑"、如何解码这样的中国汽车？、🔄上汽大众ID. ERA 9X星战联名快闪引爆上市热度等。
+  </div>
+
+  <div class="dim-tabs" id="dim-tabs"></div>
+  <div class="filter-bar">
+    <span class="filter-info" id="filter-info">共 7 个案例</span>
+  </div>
+  <div id="cases-container"></div>
+  <div class="empty-state" id="empty-state" style="display:none">
+    <div class="empty-icon">📭</div>
+    <p>暂无匹配的案例</p>
+    <span>试试切换维度</span>
+  </div>
+
+  <div class="footer">
+    📊 每日案例报告 · 汽车行业七维洞察 · 由AI智能体自动生成<br>
+    分析模型：STAR法则 · PDCA循环 · 金字塔原理 · 数据来源：公开信息综合分析
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <script>
+  (function() {
+    'use strict';
+    const CATEGORIES = [{"id": "brand-marketing", "name": "汽车营销与品牌传播", "color": "#6366f1", "icon": "🚗"}, {"id": "user-growth", "name": "用户运营与私域增长", "color": "#f59e0b", "icon": "🎯"}, {"id": "offline-experience", "name": "线下体验与场景运营", "color": "#10b981", "icon": "🎪"}, {"id": "digital-content", "name": "数字化与内容生态", "color": "#3b82f6", "icon": "📱"}, {"id": "crossover-eco", "name": "跨界与生态联动", "color": "#ec4899", "icon": "🔄"}, {"id": "industry-trend", "name": "行业趋势与对标洞察", "color": "#8b5cf6", "icon": "📊"}, {"id": "emotion-economy", "name": "情绪经济与情感价值", "color": "#14b8a6", "icon": "💜"}];
+    const CASES = [
+    {
+        "title": "宝马用象棋演绎无感刹停",
+        "brand": "极氪",
+        "type": "汽车营销与品牌传播标杆案例",
+        "sections": [
+            {
+                "label": "情境 (Situation)",
+                "content": "（SocialBeta 数英案例库）。（易车·禾颜阅车，2026-08-26）。"
+            },
+            {
+                "label": "任务 (Task)",
+                "content": "极氪面临的核心挑战：（SocialBeta 数英案例库）。"
+            },
+            {
+                "label": "行动 (Action)",
+                "content": "① （SocialBeta 数英案例库）\n③ （易车·禾颜阅车，2026-08-26）\n④ （人民网/央视网，2026-07-16）"
+            },
+            {
+                "label": "结果 (Result)",
+                "content": "（新华网/易车，2026-08-20/24）"
+            }
+        ],
+        "metrics": [],
+        "id": "2026-09-08-brand-marketing",
+        "category": "brand-marketing"
+    },
+    {
+        "title": "蔚来公布NIO Day 2026城市申办投票结果，武汉以1.78亿票胜出",
+        "brand": "蔚来",
+        "type": "会员体系标杆案例",
+        "sections": [
+            {
+                "label": "情境 (Situation)",
+                "content": "7月18日晚，蔚来官宣武汉成为NIO Day 2026举办城市。本届申办共8座城市入围，哈尔滨、厦门、武汉进入最终投票，社区用户使用\"蔚来值\"体系参与投票，累计票数达4.9亿。此举被视为蔚来\"用户企业\"战略的重要回归——把活动选址决定权交还给车主，并依托其会员积分/贡献度体系（NIO Points与蔚来值）实现车主一票一票的真实参与，深度强化了车主社区粘性与会员体系价值。"
+            },
+            {
+                "label": "任务 (Task)",
+                "content": "iCAR在珠海首届用户节上正式发布全新用户品牌iCAR CLUB，定位\"年轻人的社交平台与共创生态\"，涵盖兴趣俱乐部、好物俱乐部、玩车俱乐部三大板块，将车主从\"消费者\"升级为\"共创合伙人\"，实现从\"用车\"到\"玩车\"再到\"共创\"的私域生态升级"
+            },
+            {
+                "label": "行动 (Action)",
+                "content": "① 7月18日晚，蔚来官宣武汉成为NIO Day 2026举办城市。本届申办共8座城市入围，哈尔滨、厦门、武汉进入最终投票，社区用户使用\"蔚来值\"体系参与投票，累计票数达4.9亿。\n② iCAR在珠海首届用户节上正式发布全新用户品牌iCAR CLUB，定位\"年轻人的社交平台与共创生态\"，涵盖兴趣俱乐部、好物俱乐部、玩车俱乐部三大板块，将车主从\"消费者\"升级为\"共创合伙人\"\n③ 埃安\"智悦生活LIVE PARTY\"在长沙举行，超千位昊铂与埃安车主参与，活动摒弃领导致辞与产品讲解，改由车主市集、足球赛、AED急救教学等\"去仪式化\"内容主导，品牌让渡话语权给用户。\n④ 深蓝汽车与全国100位车友相聚重庆，召开以\"迎2026，趣创未来\"为主题的年度车友理事大会，董事长邓承浩亲临现场。"
+            },
+            {
+                "label": "结果 (Result)",
+                "content": "相关举措已取得显著成效：3.7亿辆。"
+            }
+        ],
+        "metrics": [
+            {
+                "label": "同比",
+                "value": "19%"
+            },
+            {
+                "label": "规模(亿辆)",
+                "value": "3.7"
+            }
+        ],
+        "id": "2026-09-08-user-growth",
+        "category": "user-growth"
+    },
+    {
+        "title": "尚界Z7/Z7T首批交付仪式暨潮流快闪活动在上海举行",
+        "brand": "小米",
+        "type": "交付仪式标杆案例",
+        "sections": [
+            {
+                "label": "情境 (Situation)",
+                "content": "5月30日，尚界Z7、Z7T首批车主交付仪式暨潮流快闪活动在上海市上生·新所举行，从首款车型到双车布局，品牌加速完善产品序列。上汽集团总裁贾健旭及多位上汽、华为高层亲临现场，为12位车主交付钥匙，全国同步开启大规模交付。现场众多资深媒体人与首批车主代表共同见证这一属于Z世代年轻用户的盛大时刻。"
+            },
+            {
+                "label": "任务 (Task)",
+                "content": "现场设有驾驶技术挑战赛、车友露营交流、后备箱市集、夜间露天音乐会、亲子互动专区等丰富场景，以车为纽带探索\"汽车+休闲社交\"的全新玩法"
+            },
+            {
+                "label": "行动 (Action)",
+                "content": "① 5月30日，尚界Z7、Z7T首批车主交付仪式暨潮流快闪活动在上海市上生·新所举行，从首款车型到双车布局，品牌加速完善产品序列。\n② 2026阿卡洣汽车节于8月28日至30日在廊坊临空国际会展中心南草坪广场举办，以\"欢聚京津冀 驾趣新生活\"为主题，跳出传统车展展销思维，集结京津冀百余家车友会。\n③ 东风日产公布NX8车型5-6月各城市车主活动日历，涵盖南宁NX8交付车主活动、沈阳车主露营地私享会、长沙对比试驾、车主家宴、采摘杨梅活动\n④ 大同圣路iCAR服务中心打造「乐享一夏」专属车主露营活动。"
+            },
+            {
+                "label": "结果 (Result)",
+                "content": "5月27日，小米集团创始人、董事长兼CEO雷军宣布小米YU7 GT将于本周五开始交付。5月29日上午10:30，雷军将携小米汽车品牌代言人舒淇一起为首批小米YU7 GT车主交车，并带领大家参观小米汽车工厂，以高规格仪式为车主开启提车高光时刻。"
+            }
+        ],
+        "metrics": [],
+        "id": "2026-09-08-offline-experience",
+        "category": "offline-experience"
+    },
+    {
+        "title": "当\"超强躯体\"遇上\"超强大脑\"，如何解码这样的中国汽车？",
+        "brand": "极豆",
+        "type": "AIGC标杆案例",
+        "sections": [
+            {
+                "label": "情境 (Situation)",
+                "content": "央视新闻推出《超凡一步·中国汽车新跨越》大型新媒体直播节目，以东风与华为乾崑联合打造的奕境X9为窗口，首次将汽车测试隧道改造为直播演播室，聚焦整车安全、智能驾驶、鸿蒙智能座舱等核心技术。先导片融合实景实拍、AIGC视觉特效与东方美学，同步登录抖音、B站、视频号等全平台预热造势；正片以实景拆解+趣味实验进行技术科普，直播全网观看量达6095.3万、微博话题阅读量超1.54亿。展示了\"国产整车+本土智"
+            },
+            {
+                "label": "任务 (Task)",
+                "content": "合作聚焦三大座舱场景：个性化欢迎（上车按偏好生成内容）、亲子互动（行车途中语音即时生成故事/问答）、旅途影像（抵达后合规生成旅程短片）；并将AIGC能力延伸至通勤播客、补能服务、OTA及保养信息转译为图文/短视频等用车全周期，推动座舱内容从\"预置供给\"升级为"
+            },
+            {
+                "label": "行动 (Action)",
+                "content": "① 央视新闻推出《超凡一步·中国汽车新跨越》大型新媒体直播节目，以东风与华为乾崑联合打造的奕境X9为窗口，首次将汽车测试隧道改造为直播演播室，聚焦整车安全、智能驾驶、鸿蒙智能座舱等核心技术。\n② 生数科技（Vidu多模态大模型）与极豆科技（汽车前装量产交付与用户运营）签署战略合作，共建面向智能车联网的AI应用与汽车行业AIGC解决方案。\n③ 报告聚焦AI重构汽车营销全链路：移动搜索AI内容占比达64%、AIGC内容分发量增长162%。\n④ 报告剖析汽车市场存量博弈与新能源转型背景下的社交营销变革，指出AI大模型与AIGC已成破局关键，通过重塑内容生产、智能精准投放与用户交互全面赋能营销提效。"
+            },
+            {
+                "label": "结果 (Result)",
+                "content": "相关举措已取得显著成效：162%。"
+            }
+        ],
+        "metrics": [
+            {
+                "label": "增长幅度",
+                "value": "162%"
+            },
+            {
+                "label": "占比",
+                "value": "64%"
+            }
+        ],
+        "id": "2026-09-08-digital-content",
+        "category": "digital-content"
+    },
+    {
+        "title": "上汽大众ID. ERA 9X星战联名快闪引爆上市热度",
+        "brand": "上汽大众",
+        "type": "电影IP联名快闪上市跨界营销",
+        "sections": [
+            {
+                "label": "情境 (Situation)",
+                "content": "国内大型高端增程SUV市场新品集中上市，同质化竞争加剧。上汽大众ID. ERA 9X作为德系旗舰SUV，面临品牌认知年轻化不足、上市声量难以突破圈层的挑战。电影《星球大战：曼达洛人与古古》热映带来高热度话题，但汽车与科幻IP的受众跨度大，如何借势不违和、实现从IP粉丝到潜在购车人群的转化，成为新车上市必须跨越的关卡。"
+            },
+            {
+                "label": "任务 (Task)",
+                "content": "品牌需要借星战IP快速建立ID. ERA 9X“守护、陪伴”的情感共识，突破传统德系SUV的传播瓶颈，并完成从曝光到锁单的闭环。为此设定量化目标：新车上市1小时锁单突破1万台；上市首周交付领先同级别车型，进入大型高端增程SUV市场前三；联名快闪覆盖不少于40个重点城市、150家主流商场。"
+            },
+            {
+                "label": "行动 (Action)",
+                "content": "①选定《星球大战：曼达洛人与古古》为联名IP，提炼“守护、陪伴”精神内核与德系旗舰SUV的可靠性绑定。②在上海及全国49个城市、160家商场打造星战主题快闪空间，提供沉浸式打卡与实车体验。③借势电影热映期释放限量联名车贴、定制语音和主题周边，强化IP粉丝对车型的感知。④打通快闪体验、试驾邀约、线上锁单链路，以IP权益激励高意向用户完成下订。"
+            },
+            {
+                "label": "结果 (Result)",
+                "content": "新车上市1小时锁单即突破1.1万台，上市5天完成交付2326台，直接进入大型高端增程SUV市场前三；联名活动覆盖全国49个重点城市、160家商场快闪店，在上海引发高浓度打卡热潮。IP联名带来的话题热度与到店客流有效转化为试驾与订单，德系旗舰SUV的“守护、陪伴”形象完成年轻化触达，跨界营销与市场热度双向赋能。"
+            }
+        ],
+        "metrics": [
+            {
+                "label": "锁单量",
+                "value": "上市1小时突破1.1万台"
+            },
+            {
+                "label": "交付量",
+                "value": "上市5天2326台"
+            },
+            {
+                "label": "城市覆盖",
+                "value": "49个重点城市"
+            },
+            {
+                "label": "商场覆盖",
+                "value": "160家商场快闪店"
+            }
+        ],
+        "id": "2026-09-08-crossover-eco",
+        "category": "crossover-eco"
+    },
+    {
+        "title": "《德国启动电动汽车补贴申请，中国车企或将受益》",
+        "brand": "小鹏",
+        "type": "行业趋势与对标洞察标杆案例",
+        "sections": [
+            {
+                "label": "情境 (Situation)",
+                "content": "36氪（车市睿见）｜2026-05-27。时代周报（中国能源新闻网转载）｜2026-01-22。"
+            },
+            {
+                "label": "任务 (Task)",
+                "content": "小鹏面临的核心挑战：36氪（车市睿见）｜2026-05-27。"
+            },
+            {
+                "label": "行动 (Action)",
+                "content": "① 36氪（车市睿见）｜2026-05-27\n② 时代周报（中国能源新闻网转载）｜2026-01-22\n③ 国海证券研究周报｜2026-01-20\n④ 中国汽车报网（中国青年网转载）｜2026-02-05"
+            },
+            {
+                "label": "结果 (Result)",
+                "content": "相关举措持续推进中，具体成效待后续数据验证。"
+            }
+        ],
+        "metrics": [],
+        "id": "2026-09-08-industry-trend",
+        "category": "industry-trend"
+    },
+    {
+        "title": "长安启源×52TOYS跨界联动 顶流IP NOOK\"入职\"打造灵感座驾",
+        "brand": "领克",
+        "type": "情绪价值标杆案例",
+        "sections": [
+            {
+                "label": "情境 (Situation)",
+                "content": "2026年北京车展上，中国长安汽车携手玩具品牌52TOYS，让潮流IP NOOK\"入职\"长安启源全新Q05，化身\"灵感伙伴\"，把潮玩治愈气息与汽车场景深度融合。NOOK形象首次进入车机系统Demo版，治愈壁纸、定制3D车衣让车机不再是冰冷操作面板，而是\"能接住情绪的治愈空间\"。文章指出，跨界合作的三重价值在于品牌破圈、体验升级（车机从\"工具\"变\"朋友\"）以及场景化价值延伸，核心是用情绪价值为汽车体"
+            },
+            {
+                "label": "任务 (Task)",
+                "content": "文章指出，跨界合作的三重价值在于品牌破圈、体验升级（车机从\"工具\"变\"朋友\"）以及场景化价值延伸，核心是用情绪价值为汽车体"
+            },
+            {
+                "label": "行动 (Action)",
+                "content": "① 2026年北京车展上，中国长安汽车携手玩具品牌52TOYS，让潮流IP NOOK\"入职\"长安启源全新Q05，化身\"灵感伙伴\"，把潮玩治愈气息与汽车场景深度融合。\n② 东风与华为乾崑深度共创的旗舰SUV奕境X9，发布行业首创\"情绪价值三件套\"——智慧灯光系统、满配\"一车十屏\"、沉浸式人机互动。随着智能汽车竞争进入体验升级阶段，用户需求正从功能满足向情感共鸣延伸。\n③ 2026年车企明星代言潮刷屏之下，东风日产NX8却做出\"逆向\"选择——与《上新了故宫》IP合作推出\"喜柿橙意\"限定车色，将故宫审美底层逻辑内化到车色研发全流程，情绪价值凝练为\"开门即家，归家归心\"。\n④ 大众安徽在北京打造限时快闪体验空间\"轻氧生活馆\"，以\"洗去班味 情绪满电\"为主题，为高压都市青年打造\"城市情绪急救站\"。"
+            },
+            {
+                "label": "结果 (Result)",
+                "content": "文章系统拆解2026年车企的情感营销底层机制，以\"迪迪都兜\"神曲、乐道《雪山下的婚礼》短片、领克接住用户\"我妈坐领克从来不晕车\"的真实留言等十余个案例，分析情绪锚点、圈层认同、情感连接如何转化为传播。核心观点是：传播本质已从产品宣发转向行为引导，比把车讲明白更值钱的是\"把情绪拍出来\"——不讲参数只讲"
+            }
+        ],
+        "metrics": [],
+        "id": "2026-09-08-emotion-economy",
+        "category": "emotion-economy"
+    }
+];
+    const state = { activeDim: '__all__' };
+    const $ = (sel) => document.querySelector(sel);
+
+    function renderDimTabs() {
+      const bar = $('#dim-tabs');
+      const dimIds = [...new Set(CASES.map(c => c.category))];
+      let html = `<button class="dim-tab ${state.activeDim === '__all__' ? 'active' : ''}" data-dim="__all__">全部 (${CASES.length})</button>`;
+      dimIds.forEach(dimId => {
+        const cat = CATEGORIES.find(c => c.id === dimId);
+        if (!cat) return;
+        const count = CASES.filter(c => c.category === dimId).length;
+        html += `<button class="dim-tab ${state.activeDim === dimId ? 'active' : ''}" data-dim="${dimId}">${cat.icon} ${cat.name} (${count})</button>`;
+      });
+      bar.innerHTML = html;
+      bar.querySelectorAll('.dim-tab').forEach(btn => {
+        btn.addEventListener('click', () => { state.activeDim = btn.dataset.dim; renderDimTabs(); renderCases(); });
+      });
+    }
+
+    function renderCases() {
+      const container = $('#cases-container');
+      let cases = CASES;
+      if (state.activeDim !== '__all__') cases = cases.filter(c => c.category === state.activeDim);
+      const empty = $('#empty-state');
+      if (cases.length === 0) { container.innerHTML = ''; empty.style.display = 'block'; return; }
+      empty.style.display = 'none';
+      container.innerHTML = cases.map((c, i) => {
+        const cat = CATEGORIES.find(ct => ct.id === c.category);
+        if (!cat) return '';
+        const sectionsHtml = (c.sections || []).map(s => `<div class="case-section"><h4>${s.label}</h4><p>${s.content}</p></div>`).join('');
+        const metricsHtml = (c.metrics || []).map(m => `<span class="metric">${m.label} <strong>${m.value}</strong></span>`).join('');
+        return `<div class="case" style="animation-delay:${i * 60}ms"><div class="case-header"><span class="case-cat" style="background:${cat.color}18;color:${cat.color}">${cat.icon} ${cat.name}</span><span class="case-title">${c.title}</span></div><p class="case-brand">品牌：${c.brand} | 类型：${c.type}</p>${sectionsHtml}${metricsHtml ? `<div class="case-metrics">${metricsHtml}</div>` : ''}</div>`;
+      }).join('');
+      let info = `共 ${cases.length} 个案例`;
+      if (state.activeDim !== '__all__') {
+        const cat = CATEGORIES.find(c => c.id === state.activeDim);
+        if (cat) info = `${cat.icon} ${cat.name} · ${cases.length} 个案例`;
+      }
+      $('#filter-info').textContent = info;
+    }
+
+    function init() {
+      const savedTheme = localStorage.getItem('report-theme');
+      if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
+      else if (window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.setAttribute('data-theme', 'dark');
+      $('#theme-btn').addEventListener('click', () => {
+        const html = document.documentElement;
+        const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        html.setAttribute('data-theme', next);
+        localStorage.setItem('report-theme', next);
+      });
+      renderDimTabs();
+      renderCases();
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    else init();
+  })();
+  </script>
+</body>
+</html>
