@@ -140,6 +140,11 @@
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           entry.target.classList.add('visible');
+          // Stagger children if present
+          const children = entry.target.querySelectorAll('.stagger-reveal');
+          children.forEach((child, i) => {
+            setTimeout(() => child.classList.add('visible'), i * 80);
+          });
           observer.unobserve(entry.target);
         }
       });
@@ -164,11 +169,136 @@
             const speed = 0.02 + i * 0.008;
             orb.style.transform = 'translateY(' + (scrollY * speed) + 'px)';
           });
+          // Parallax on diffuse lights (slower, dreamy)
+          const dl1 = $('.diffuse-light-1');
+          const dl2 = $('.diffuse-light-2');
+          if (dl1) dl1.style.transform = 'translateY(' + (scrollY * 0.015) + 'px)';
+          if (dl2) dl2.style.transform = 'translateY(' + (scrollY * -0.01) + 'px)';
           ticking = false;
         });
         ticking = true;
       }
     }, { passive: true });
+  }
+
+  // --- Cursor Glow (Mouse-following light) ---
+  function initCursorGlow() {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if ('ontouchstart' in window) return; // Skip on touch devices
+
+    const glow = $('#cursor-glow');
+    if (!glow) return;
+
+    let mx = 0, my = 0, gx = 0, gy = 0;
+    let active = false;
+
+    document.addEventListener('mousemove', (e) => {
+      mx = e.clientX;
+      my = e.clientY;
+      if (!active) {
+        glow.classList.add('active');
+        active = true;
+      }
+    });
+
+    document.addEventListener('mouseleave', () => {
+      glow.classList.remove('active');
+      active = false;
+    });
+
+    // Smooth follow with lerp
+    function animateGlow() {
+      gx += (mx - gx) * 0.08;
+      gy += (my - gy) * 0.08;
+      glow.style.left = gx + 'px';
+      glow.style.top = gy + 'px';
+      requestAnimationFrame(animateGlow);
+    }
+    animateGlow();
+  }
+
+  // --- Card 3D Tilt on Hover ---
+  function initCardTilt() {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if ('ontouchstart' in window) return;
+
+    function addTilt(card) {
+      card.addEventListener('mousemove', (e) => {
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const cx = rect.width / 2;
+        const cy = rect.height / 2;
+        const rotateX = ((y - cy) / cy) * -3;  // Max 3deg
+        const rotateY = ((x - cx) / cx) * 3;
+        card.style.transform = 'perspective(800px) rotateX(' + rotateX + 'deg) rotateY(' + rotateY + 'deg) translateY(-4px)';
+        card.classList.add('tilt-active');
+      });
+
+      card.addEventListener('mouseleave', () => {
+        card.style.transform = '';
+        card.classList.remove('tilt-active');
+      });
+    }
+
+    // Observe for dynamically added cards
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach(m => {
+        m.addedNodes.forEach(node => {
+          if (node.nodeType === 1) {
+            if (node.classList && (node.classList.contains('bento-card') || node.classList.contains('case-card'))) {
+              addTilt(node);
+            }
+            node.querySelectorAll && node.querySelectorAll('.bento-card, .case-card').forEach(addTilt);
+          }
+        });
+      });
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    // Initial cards
+    setTimeout(() => {
+      $$('.bento-card, .case-card').forEach(addTilt);
+    }, 600);
+  }
+
+  // --- Magnetic Button Effect ---
+  function initMagneticButtons() {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if ('ontouchstart' in window) return;
+
+    $$('.nav-icon-btn').forEach(btn => {
+      btn.classList.add('magnetic');
+      btn.addEventListener('mousemove', (e) => {
+        const rect = btn.getBoundingClientRect();
+        const x = e.clientX - rect.left - rect.width / 2;
+        const y = e.clientY - rect.top - rect.height / 2;
+        btn.style.transform = 'translate(' + (x * 0.15) + 'px, ' + (y * 0.15) + 'px)';
+      });
+      btn.addEventListener('mouseleave', () => {
+        btn.style.transform = '';
+      });
+    });
+  }
+
+  // --- Ripple Effect on Click ---
+  function initRipple() {
+    document.addEventListener('click', (e) => {
+      const target = e.target.closest('.bento-card, .case-card, .dim-tab, .nav-icon-btn');
+      if (!target) return;
+      const rect = target.getBoundingClientRect();
+      const ripple = document.createElement('span');
+      ripple.className = 'ripple';
+      const size = Math.max(rect.width, rect.height);
+      ripple.style.width = ripple.style.height = size + 'px';
+      ripple.style.left = (e.clientX - rect.left - size / 2) + 'px';
+      ripple.style.top = (e.clientY - rect.top - size / 2) + 'px';
+      target.style.position = target.style.position || 'relative';
+      target.style.overflow = 'hidden';
+      target.appendChild(ripple);
+      setTimeout(() => ripple.remove(), 700);
+    });
   }
 
   // --- Dimension Tabs ---
@@ -243,6 +373,7 @@
       const iconSvg = ICONS[cat.id] || ICONS.bar;
       card.innerHTML = `
         <div class="bento-card-glow" style="background: radial-gradient(circle, ${cat.color} 0%, transparent 70%)"></div>
+        <div class="bento-card-diffuse"></div>
         <div>
           <div class="bento-card-icon" style="border-color: ${cat.color}30; color: ${cat.color}">${iconSvg}</div>
           <div class="bento-card-title">${cat.name}</div>
@@ -331,8 +462,8 @@
       card.className = 'case-card';
       // Staggered reveal with slow easing
       card.style.opacity = '0';
-      card.style.transform = 'translateY(16px)';
-      card.style.transition = 'opacity 700ms ' + EASE.out + ' ' + Math.min(i * 60, 600) + 'ms, transform 700ms ' + EASE.out + ' ' + Math.min(i * 60, 600) + 'ms';
+      card.style.transform = 'translateY(20px) scale(0.98)';
+      card.style.transition = 'opacity 800ms ' + EASE.out + ' ' + Math.min(i * 70, 700) + 'ms, transform 800ms ' + EASE.out + ' ' + Math.min(i * 70, 700) + 'ms';
 
       const metricsHtml = (c.metrics || []).slice(0, 3).map(m => `
         <div class="case-metric">
@@ -374,7 +505,7 @@
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           card.style.opacity = '1';
-          card.style.transform = 'translateY(0)';
+          card.style.transform = 'translateY(0) scale(1)';
         });
       });
     });
@@ -811,6 +942,10 @@
       updateBookmarkBadge();
       initScrollReveal();
       initParallax();
+      initCursorGlow();
+      initCardTilt();
+      initMagneticButtons();
+      initRipple();
 
       // Hide preloader after content ready
       setTimeout(hidePreloader, 200);
