@@ -9,9 +9,10 @@
 2. 纯搜索模式：仅基于搜索结果生成简要报告（无需LLM API Key）
 
 搜索API支持（按优先级）：
-1. DeepSeek联网搜索（Anthropic端点）- 仅需LLM_API_KEY，搜索+分析一体化（推荐）
-2. SerpAPI (https://serpapi.com) - 100次/月免费（需SERPAPI_KEY）
-3. NewsAPI (https://newsapi.org) - 开发者免费100次/天（需NEWS_API_KEY）
+1. Tavily智能搜索 (https://tavily.com) - 1000次/月免费，专为AI Agent设计（需TAVILY_API_KEY）
+2. DeepSeek联网搜索（Anthropic端点）- 仅需LLM_API_KEY，搜索+分析一体化（推荐）
+3. SerpAPI (https://serpapi.com) - 100次/月免费（需SERPAPI_KEY）
+4. NewsAPI (https://newsapi.org) - 开发者免费100次/天（需NEWS_API_KEY）
 
 DeepSeek联网搜索原理：
   调用 https://api.deepseek.com/anthropic/v1/messages 端点，
@@ -486,6 +487,71 @@ def _parse_search_text(text, results_list, max_results):
             results_list.append({"title": clean[:100], "url": "", "snippet": ""})
 
 
+def search_with_tavily(query, num_results=5):
+    """使用Tavily智能搜索API（优先方案）
+
+    Tavily是专为AI Agent设计的搜索API，返回结构化结果（标题+URL+摘要），
+    支持中文搜索，免费额度1000次/月。
+    优先使用tavily-python SDK，回退到REST API。
+    """
+    try:
+        api_key = os.environ.get("TAVILY_API_KEY")
+        if not api_key:
+            return []
+
+        # 优先使用tavily-python SDK
+        try:
+            from tavily import TavilyClient
+            client = TavilyClient(api_key=api_key)
+            response = client.search(
+                query=query,
+                max_results=num_results,
+                search_depth="basic",  # basic免费，advanced消耗更多credits
+                include_answer=False,
+            )
+            results = []
+            for item in response.get("results", [])[:num_results]:
+                results.append({
+                    "title": item.get("title", ""),
+                    "url": item.get("url", ""),
+                    "snippet": item.get("content", "") or item.get("snippet", ""),
+                })
+            if results:
+                print(f"    ✅ Tavily SDK搜索找到 {len(results)} 条结果")
+            return results
+        except ImportError:
+            print("    ℹ️ tavily-python未安装，回退到REST API...")
+
+        # 回退：直接调用Tavily REST API
+        import requests
+        resp = requests.post("https://api.tavily.com/search", json={
+            "api_key": api_key,
+            "query": query,
+            "max_results": num_results,
+            "search_depth": "basic",
+            "include_answer": False,
+        }, timeout=30)
+
+        if resp.status_code != 200:
+            print(f"  ⚠️ Tavily搜索HTTP {resp.status_code}: {resp.text[:200]}")
+            return []
+
+        data = resp.json()
+        results = []
+        for item in data.get("results", [])[:num_results]:
+            results.append({
+                "title": item.get("title", ""),
+                "url": item.get("url", ""),
+                "snippet": item.get("content", "") or item.get("snippet", ""),
+            })
+        if results:
+            print(f"    ✅ Tavily REST搜索找到 {len(results)} 条结果")
+        return results
+    except Exception as e:
+        print(f"  ⚠️ Tavily搜索失败: {e}")
+        return []
+
+
 def search_with_deepseek_websearch(query, num_results=5):
     """使用DeepSeek Anthropic端点的联网搜索功能（优先方案）
 
@@ -643,22 +709,28 @@ def search_with_newsapi(query, num_results=5):
 
 
 def search_news_for_dimension(dim_id, query):
-    """按维度搜索新闻，优先DeepSeek联网搜索，回退SerpAPI，再回退NewsAPI"""
+    """按维度搜索新闻，优先Tavily，回退DeepSeek联网搜索，再回退SerpAPI/NewsAPI"""
     print(f"  🔍 搜索维度: {dim_id} ...")
 
-    # 优先：DeepSeek联网搜索（仅需LLM_API_KEY，无需额外Key）
+    # 优先：Tavily智能搜索（专为AI Agent设计，结构化结果，需TAVILY_API_KEY）
+    results = search_with_tavily(query, num_results=5)
+    if results:
+        print(f"    ✅ Tavily搜索找到 {len(results)} 条结果")
+        return results
+
+    # 回退1：DeepSeek联网搜索（仅需LLM_API_KEY，搜索+分析一体化）
     results = search_with_deepseek_websearch(query, num_results=5)
     if results:
         print(f"    ✅ DeepSeek联网搜索找到 {len(results)} 条结果")
         return results
 
-    # 回退1：SerpAPI（需要SERPAPI_KEY）
+    # 回退2：SerpAPI（需要SERPAPI_KEY）
     results = search_with_serpapi(query, num_results=5)
     if results:
         print(f"    ✅ SerpAPI找到 {len(results)} 条结果")
         return results
 
-    # 回退2：NewsAPI（需要NEWS_API_KEY）
+    # 回退3：NewsAPI（需要NEWS_API_KEY）
     results = search_with_newsapi(query, num_results=5)
     if results:
         print(f"    ✅ NewsAPI找到 {len(results)} 条结果")
@@ -1803,6 +1875,29 @@ def update_data_js(date_str, new_cases):
 # ============ 主流程 ============
 def main():
     import argparse
+
+    # 加载.env文件中的环境变量（优先使用python-dotenv，回退手动解析）
+    env_path = SITE_DIR / ".env"
+    if env_path.exists():
+        try:
+            from dotenv import load_dotenv
+            load_dotenv(env_path)
+            print("  ✅ 已通过python-dotenv加载.env配置")
+        except ImportError:
+            # 手动解析.env文件
+            with open(env_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    if "=" in line:
+                        key, _, value = line.partition("=")
+                        key = key.strip()
+                        value = value.strip().strip("'\"")
+                        if key and key not in os.environ:  # 不覆盖已有环境变量
+                            os.environ[key] = value
+            print("  ✅ 已手动加载.env配置")
+
     parser = argparse.ArgumentParser(description='每日案例报告生成脚本')
     parser.add_argument('--date', type=str, default=None,
                         help='指定日期 YYYY-MM-DD（默认今天），用于重新生成特定日期的日报')
