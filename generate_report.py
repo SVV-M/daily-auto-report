@@ -143,6 +143,17 @@ def sanitize_text(text, remove_urls=False):
 
     # 6. 移除"来源URL："/"来源："/"URL："等来源标签（无论是否移除URL本身，始终清理标签文字）
     text = re.sub(r'(?:来源\s*URL|来源|Source\s*URL|Source|URL)[：:]\s*', '', text)
+    # 7a. 移除来源引用标注（如（SocialBeta 数英案例库）、（易车·禾颜阅车，2026-08-26）、36氪（车市睿见）｜2026-05-27 等）
+    # 7a-1 全角括号内的来源引用：（媒体名 子来源）或（来源，日期）
+    text = re.sub(r'（[^）]{1,60}）', '', text)
+    # 7a-2 半角括号内的来源引用：(媒体名 子来源) 或 (来源, 日期)
+    text = re.sub(r'\([^)]{1,60}\)', '', text)
+    # 7a-3 媒体名（子来源）｜日期  或  媒体名｜日期
+    text = re.sub(r'[\w\u4e00-\u9fff·.]+（[^）]{1,30}）[｜|]\d{4}-\d{2}-\d{2}', '', text)
+    text = re.sub(r'[\w\u4e00-\u9fff·.]+[｜|]\d{4}-\d{2}-\d{2}', '', text)
+    # 7a-4 残留的 ｜日期 或 |日期
+    text = re.sub(r'[｜|]\d{4}-\d{2}-\d{2}', '', text)
+
     # 7. 移除URL（可选）
     if remove_urls:
         text = _URL_RE.sub('', text)
@@ -389,6 +400,56 @@ def validate_case(case_data):
     if not valid_metrics and len(sections) >= 4:
         # 有完整STAR但无metrics，发出警告但不拒绝（搜索结果可能确实无数据）
         pass  # 允许无metrics通过验证，但在后续步骤中会尝试补充
+
+    # ---- 新增检查：纯来源引用内容检测 ----
+    _citation_re = re.compile(r'（[^）]*?(?:案例库|数英|易车|汽车之家|懂车帝|新榜|36氪|虎嗅|钛媒体|亿邦动力|车云|盖世汽车|禾颜阅车|SocialBeta|Campaign|数英网|广告门)[^）]*?）')
+    _media_source_re = re.compile(r'[\w\u4e00-\u9fff]+（[^）]*?）[｜|]\s*\d{4}-\d{2}-\d{2}')
+    for s in sections:
+        content_text = s.get("content", "").strip()
+        if not content_text:
+            continue
+        cleaned = _citation_re.sub('', content_text)
+        cleaned = _media_source_re.sub('', cleaned)
+        cleaned = re.sub(r'[（(]\s*(?:来源|出处|引用|参考)[：:]\s*[^）)]*?[）)]', '', cleaned)
+        cleaned = re.sub(r'（(?:汽车之家|懂车帝|易车|新榜|36氪|虎嗅|钛媒体|亿邦动力|车云|盖世汽车|禾颜阅车|SocialBeta|Campaign|数英网|数英案例库|广告门)）', '', cleaned)
+        cleaned = cleaned.strip()
+        if len(cleaned) < 10:
+            return False, f"section内容为纯来源引用: {s.get('label', '')}"
+
+    # ---- 新增检查：品牌-标题一致性检测 ----
+    _all_known_brands = ["蔚来", "小鹏", "理想", "比亚迪", "极氪", "问界", "领克",
+                    "小米", "上汽", "广汽", "吉利", "长城", "奇瑞", "宝马", "奔驰",
+                    "大众", "丰田", "本田", "特斯拉", "极越", "岚图", "智己", "阿维塔",
+                    "奥迪", "保时捷", "沃尔沃", "现代", "起亚", "马自达", "福特",
+                    "捷达", "林肯", "AITO", "smart", "启辰", "极豆", "生数", "传祺",
+                    "零跑", "深蓝", "方程豹", "腾势", "享界", "尊界", "尚界", "埃安",
+                    "启源", "宝骏", "银河", "风云", "荣威", "名爵", "飞凡", "极狐",
+                    "大通", "依维柯", "星途", "瑶光", "探岳", "揽巡", "极星", "路特斯",
+                    "高合", "合创", "创维", "天际", "威马", "爱驰", "哪吒", "几何",
+                    "枫叶", "思皓", "捷途", "iCAR", "星纪元", "极越"]
+    title_brands = [b for b in _all_known_brands if b in title]
+    if title_brands and brand not in title_brands and brand != "行业综合":
+        return False, f"品牌不一致: title含{title_brands[0]}但brand={brand}"
+
+    # ---- 新增检查：多品牌混合检测 ----
+    content_brands = set()
+    for s in sections:
+        section_content = s.get("content", "")
+        for b in _all_known_brands:
+            if b in section_content:
+                content_brands.add(b)
+    if len(content_brands) >= 3 and brand not in content_brands:
+        return False, f"内容含多品牌混合({len(content_brands)}个): {', '.join(list(content_brands)[:3])}"
+
+    # ---- 新增检查：内容截断检测 ----
+    _truncation_endings = ('。', '！', '？', '；', '…', '.', '!', '?')
+    for s in sections:
+        content_text = s.get("content", "").strip()
+        if content_text and len(content_text) > 20:
+            last_char = content_text.rstrip()[-1] if content_text.rstrip() else ''
+            if last_char not in _truncation_endings and not last_char.isdigit() and last_char not in ('①', '②', '③', '④'):
+                if len(content_text) < 50:
+                    return False, f"section内容疑似截断: {s.get('label', '')} (结尾'{last_char}', 长度{len(content_text)})"
 
     return True, "OK"
 
@@ -778,16 +839,18 @@ def generate_case_with_llm(dim_info, search_results):
 {search_summary}
 
 严格要求：
-1. 选择搜索结果中最有代表性的一个案例深入分析
+1. 选择搜索结果中最有代表性的一个案例深入分析，只聚焦一个品牌的一个案例
 2. 使用STAR法则（情境-任务-行动-结果）组织内容，每个环节100-200字
 3. Action环节用①②③④编号列出关键动作，每条30-50字
 4. Result环节必须有具体数值和数据，不可泛化
 5. 提取3-4个关键指标（metrics），必须有具体数值
-6. 从搜索结果标题中提取品牌名
+6. 从搜索结果标题中提取品牌名，brand字段必须与title中的品牌一致
+7. 所有section内容只围绕一个品牌展开，禁止混入其他品牌的信息
 
 禁止事项（违反则输出无效）：
 - 禁止在title/brand/content中出现"我将搜索""我来搜索""根据搜索""以下是根据"等搜索提示语
 - 禁止在content中包含URL或"来源URL""SourceURL"等字样
+- 禁止在content中包含来源引用标注，如"（SocialBeta 数英案例库）""（易车·禾颜阅车，2026-08-26）""36氪（车市睿见）｜2026-05-27"等
 - 禁止使用Markdown格式标记（**加粗**、*斜体*、#标题等）
 - 禁止使用"暂无详细描述""待补充""（待确认）"等占位文字
 - 禁止使用"当前汽车行业XX领域正处于快速发展期"等泛化开头
@@ -795,6 +858,9 @@ def generate_case_with_llm(dim_info, search_results):
 - 禁止使用"为后续深化运营奠定了基础"等模板化结尾
 - 禁止输出"可迁移点"section（仅输出4个STAR section）
 - 禁止在title中使用引号包裹（如「xxx」）
+- 禁止在同一个案例中混入多个品牌的信息，每个案例只聚焦一个品牌
+- 禁止brand字段与title中的品牌不一致
+- 禁止section内容仅为来源引用或媒体标注，必须有实质性分析内容
 
 请严格按以下JSON格式输出（不要输出markdown代码块标记，直接输出JSON）：
 {{
@@ -815,21 +881,34 @@ def generate_case_with_llm(dim_info, search_results):
 
         # DeepSeek Reasoner模型需要更多token输出完整JSON
         # finish_reason=length 表示输出被截断，需要增大max_tokens
-        max_output_tokens = 8000 if "reasoner" in model.lower() else 3000
+        max_output_tokens = 8000 if "reasoner" in model.lower() else 5000
 
-        resp = requests.post(chat_url, headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        }, json={
-            "model": model,
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.7,
-            "max_tokens": max_output_tokens,
-        }, timeout=120)
+        # 截断重试：最多尝试2次，首次用max_output_tokens，截断时翻倍
+        for _retry_idx in range(2):
+            resp = requests.post(chat_url, headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            }, json={
+                "model": model,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.7,
+                "max_tokens": max_output_tokens,
+            }, timeout=120)
 
-        if resp.status_code != 200:
-            print(f"    ⚠️ LLM API HTTP {resp.status_code}: {resp.text[:200]}")
-            return None
+            if resp.status_code != 200:
+                print(f"    ⚠️ LLM API HTTP {resp.status_code}: {resp.text[:200]}")
+                return None
+
+            # 检查是否因max_tokens截断（finish_reason=length），自动翻倍重试
+            try:
+                _fr = resp.json().get("choices", [{}])[0].get("finish_reason", "")
+                if _fr == "length":
+                    print(f"    ⚠️ LLM输出被截断(finish_reason=length, max_tokens={max_output_tokens})，翻倍重试...")
+                    max_output_tokens *= 2
+                    continue  # 重试
+            except (KeyError, IndexError):
+                pass
+            break  # 正常完成，退出重试循环
 
         # 提取响应内容（兼容多种API响应格式）
         resp_json = resp.json()
@@ -1104,10 +1183,30 @@ def _clean_llm_case(case_data):
     """
     # 清洗标题
     case_data["title"] = sanitize_title(case_data.get("title", ""))
-    # 清洗品牌
+    # 清洗品牌 + 品牌与标题交叉验证
     brand = case_data.get("brand", "")
     if brand in ("待补充", "（待确认）", "待确认"):
-        case_data["brand"] = "行业综合"
+        brand = "行业综合"
+    # 品牌与标题交叉验证：从标题中提取品牌名，优先使用标题中的品牌
+    _known_brands_for_clean = ["蔚来", "小鹏", "理想", "比亚迪", "极氪", "问界", "领克",
+                    "小米", "上汽", "广汽", "吉利", "长城", "奇瑞", "宝马", "奔驰",
+                    "大众", "丰田", "本田", "特斯拉", "极越", "岚图", "智己", "阿维塔",
+                    "奥迪", "保时捷", "沃尔沃", "现代", "起亚", "马自达", "福特",
+                    "捷达", "林肯", "AITO", "smart", "启辰", "极豆", "生数", "传祺",
+                    "零跑", "深蓝", "方程豹", "腾势", "享界", "尊界", "尚界", "埃安",
+                    "启源", "宝骏", "银河", "风云", "荣威", "名爵", "飞凡", "极狐",
+                    "大通", "星途", "极星", "路特斯", "高合", "哪吒", "几何", "iCAR",
+                    "星纪元", "捷途", "思皓"]
+    title_text = case_data.get("title", "")
+    title_brand = None
+    for b in _known_brands_for_clean:
+        if b in title_text:
+            title_brand = b
+            break
+    if title_brand and title_brand != brand:
+        print(f"    ℹ️ 品牌交叉验证: brand字段'{brand}'与标题品牌'{title_brand}'不一致，使用标题品牌")
+        brand = title_brand
+    case_data["brand"] = brand
     # 清洗type
     case_data["type"] = sanitize_text(case_data.get("type", ""))
     # 清洗sections — 仅保留标准STAR 4个section
@@ -1120,6 +1219,11 @@ def _clean_llm_case(case_data):
             continue
         # 清洗content
         content = sanitize_text(s.get("content", ""), remove_urls=True)
+        # 截断内容自动补标点：如果内容不以完整标点结尾，追加句号
+        if content and len(content) > 20:
+            last_char = content.rstrip()[-1] if content.rstrip() else ''
+            if last_char not in ('。', '！', '？', '；', '…', '.', '!', '?', '）', ')', '④', '③', '②', '①'):
+                content = content.rstrip() + '。'
         # 清洗label
         label = sanitize_text(label)
         if content and label:
@@ -1153,7 +1257,11 @@ def build_simple_case(dim_info, search_results, date_str):
                     "大众", "丰田", "本田", "特斯拉", "极越", "岚图", "智己", "阿维塔",
                     "奥迪", "保时捷", "沃尔沃", "现代", "起亚", "马自达", "福特",
                     "捷达", "林肯", "AITO", "smart", "启辰", "极豆", "生数", "传祺",
-                    "零跑", "深蓝", "方程豹", "腾势", "享界", "尊界"]
+                    "零跑", "深蓝", "方程豹", "腾势", "享界", "尊界",
+                    "尚界", "埃安", "启源", "宝骏", "银河", "风云", "荣威", "名爵",
+                    "飞凡", "极狐", "大通", "星途", "极星", "路特斯", "高合", "哪吒",
+                    "几何", "iCAR", "星纪元", "捷途", "思皓", "合创", "创维",
+                    "天际", "威马", "爱驰", "枫叶", "瑶光", "揽巡", "依维柯"]
 
     brand = "行业综合"
     all_text = " ".join(r.get("title", "") + " " + r.get("snippet", "") for r in search_results)
