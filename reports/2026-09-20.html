@@ -1,0 +1,506 @@
+<!-- AI生成 -->
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>每日案例报告 · 2026-09-20</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --c-bg: #f8fafc; --c-surface: #ffffff; --c-text: #0f172a;
+      --c-text2: #475569; --c-text3: #94a3b8; --c-border: #e2e8f0;
+      --c-primary: #4f46e5; --c-primary-light: #818cf8; --c-primary-bg: #eef2ff;
+      --c-accent: #f59e0b;
+      --f-sans: "Inter", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      --g-primary: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #a855f7 100%);
+      --c-shadow: rgba(15,23,42,0.06);
+      --c-shadow-md: rgba(15,23,42,0.1);
+    }
+    [data-theme="dark"] {
+      --c-bg: #0c0f1a; --c-surface: #1a1f35; --c-text: #f1f5f9;
+      --c-text2: #cbd5e1; --c-text3: #64748b; --c-border: #2a3050;
+      --c-primary-bg: rgba(79,70,229,0.12); --c-shadow: rgba(0,0,0,0.25); --c-shadow-md: rgba(0,0,0,0.35);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--f-sans); color: var(--c-text); background: var(--c-bg);
+      line-height: 1.75; padding: 40px; max-width: 960px; margin: 0 auto;
+      -webkit-font-smoothing: antialiased;
+    }
+    button { cursor: pointer; border: none; background: none; font: inherit; color: inherit; }
+    .toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; gap: 16px; }
+    .back-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 20px; border-radius: 12px;
+      font-size: 15px; font-weight: 600; color: var(--c-text2);
+      border: 1px solid var(--c-border); background: var(--c-surface);
+      transition: all 0.2s ease; text-decoration: none;
+    }
+    .back-btn:hover { border-color: var(--c-primary-light); color: var(--c-primary); }
+    .toolbar-right { display: flex; align-items: center; gap: 10px; }
+    .theme-toggle-btn {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--c-text2); border: 1px solid var(--c-border); background: var(--c-surface);
+      font-size: 18px;
+    }
+    .report-header { margin-bottom: 32px; padding-bottom: 28px; border-bottom: 2px solid var(--c-border); }
+    h1 { font-size: 36px; font-weight: 900; margin-bottom: 12px; letter-spacing: -0.03em; line-height: 1.2; }
+    .date { font-size: 17px; color: var(--c-text2); font-weight: 500; }
+    .summary {
+      background: linear-gradient(135deg, #eef2ff 0%, #f0fdf4 50%, #fef3c7 100%);
+      border-radius: 20px; padding: 28px 32px; margin-bottom: 32px;
+      font-size: 17px; line-height: 1.85; border-left: 5px solid var(--c-primary);
+      box-shadow: 0 4px 16px rgba(79, 70, 229, 0.08);
+    }
+    [data-theme="dark"] .summary {
+      background: linear-gradient(135deg, rgba(79,70,229,0.1) 0%, rgba(16,185,129,0.08) 50%, rgba(245,158,11,0.08) 100%);
+    }
+    .summary strong { color: var(--c-primary); font-weight: 700; }
+    .dim-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 28px; padding-bottom: 16px; border-bottom: 1px solid var(--c-border); }
+    .dim-tab {
+      padding: 8px 18px; border-radius: 24px; font-size: 14px; font-weight: 600;
+      color: var(--c-text2); background: var(--c-surface); border: 1px solid var(--c-border);
+      cursor: pointer; white-space: nowrap; transition: all 0.2s ease;
+    }
+    .dim-tab:hover { border-color: var(--c-primary-light); color: var(--c-primary); background: var(--c-primary-bg); }
+    .dim-tab.active { background: var(--g-primary); color: white; border-color: transparent; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); }
+    .filter-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .filter-info { font-size: 14px; color: var(--c-text3); font-weight: 500; }
+    .case {
+      background: var(--c-surface); border-radius: 20px;
+      border: 1px solid var(--c-border); padding: 32px; margin-bottom: 24px;
+      box-shadow: 0 4px 16px var(--c-shadow); transition: all 0.3s ease;
+      animation: caseFadeIn 0.4s ease both; position: relative; overflow: hidden;
+    }
+    .case:hover { box-shadow: 0 8px 32px var(--c-shadow-md); transform: translateY(-2px); }
+    .case::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--g-primary); }
+    @keyframes caseFadeIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+    .case-header { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+    .case-cat { font-size: 14px; font-weight: 700; padding: 5px 14px; border-radius: 24px; white-space: nowrap; }
+    .case-title { font-size: 22px; font-weight: 800; flex: 1; letter-spacing: -0.02em; line-height: 1.3; }
+    .case-brand { font-size: 15px; color: var(--c-text2); margin-bottom: 16px; font-weight: 500; }
+    .case-section { margin-bottom: 16px; }
+    .case-section h4 { font-size: 14px; font-weight: 700; color: var(--c-primary); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .case-section h4::before { content: ''; width: 3px; height: 14px; background: var(--c-primary); border-radius: 2px; }
+    .case-section p { font-size: 16px; color: var(--c-text2); line-height: 1.85; }
+    .case-metrics { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+    .metric { background: var(--c-primary-bg); border-radius: 12px; padding: 10px 18px; font-size: 15px; font-weight: 500; border: 1px solid rgba(79,70,229,0.1); }
+    .metric strong { color: var(--c-primary); font-weight: 800; }
+    .empty-state { text-align: center; padding: 80px 20px; color: var(--c-text3); }
+    .empty-state .empty-icon { font-size: 56px; margin-bottom: 16px; }
+    .empty-state p { font-size: 20px; font-weight: 700; color: var(--c-text2); margin-bottom: 8px; }
+    .footer { text-align: center; color: var(--c-text3); font-size: 14px; margin-top: 56px; padding-top: 28px; border-top: 2px solid var(--c-border); }
+    .toast { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%) translateY(24px); background: var(--c-text); color: var(--c-bg); padding: 14px 28px; border-radius: 24px; font-size: 15px; font-weight: 600; z-index: 300; opacity: 0; visibility: hidden; transition: all 0.3s ease; box-shadow: 0 12px 32px rgba(0,0,0,0.25); white-space: nowrap; }
+    .toast.show { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
+    @media (max-width: 640px) { body { padding: 20px; } h1 { font-size: 28px; } .case { padding: 24px; } .case-title { font-size: 19px; } }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <a href="../index.html" class="back-btn">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      返回总览
+    </a>
+    <div class="toolbar-right">
+      <button class="theme-toggle-btn" id="theme-btn" title="切换主题">🌓</button>
+    </div>
+  </div>
+
+  <div class="report-header">
+    <h1>📊 每日案例报告</h1>
+    <p class="date">2026-09-20 · 汽车行业七维洞察</p>
+  </div>
+
+  <div class="summary">
+    <strong>今日摘要：</strong>今日精选7大维度案例：🚗长城欧拉5多动力上市以7.98万元起锚定8万元级、🎯启辰大V盟2026全国车主大会私域共创破圈、🎪奇瑞全国首座生活馆汕头开业 熊黛林打卡激活线下场景、📱生数科技签署汽车行业AIGC战略合作、🔄极氪携手大乐之野打造猎装游牧酒店生活方式IP等。
+  </div>
+
+  <div class="dim-tabs" id="dim-tabs"></div>
+  <div class="filter-bar">
+    <span class="filter-info" id="filter-info">共 7 个案例</span>
+  </div>
+  <div id="cases-container"></div>
+  <div class="empty-state" id="empty-state" style="display:none">
+    <div class="empty-icon">📭</div>
+    <p>暂无匹配的案例</p>
+    <span>试试切换维度</span>
+  </div>
+
+  <div class="footer">
+    📊 每日案例报告 · 汽车行业七维洞察 · 由AI智能体自动生成<br>
+    分析模型：STAR法则 · PDCA循环 · 金字塔原理 · 数据来源：公开信息综合分析
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <script>
+  (function() {
+    'use strict';
+    const CATEGORIES = [{"id": "brand-marketing", "name": "汽车营销与品牌传播", "color": "#6366f1", "icon": "🚗"}, {"id": "user-growth", "name": "用户运营与私域增长", "color": "#f59e0b", "icon": "🎯"}, {"id": "offline-experience", "name": "线下体验与场景运营", "color": "#10b981", "icon": "🎪"}, {"id": "digital-content", "name": "数字化与内容生态", "color": "#3b82f6", "icon": "📱"}, {"id": "crossover-eco", "name": "跨界与生态联动", "color": "#ec4899", "icon": "🔄"}, {"id": "industry-trend", "name": "行业趋势与对标洞察", "color": "#8b5cf6", "icon": "📊"}, {"id": "emotion-economy", "name": "情绪经济与情感价值", "color": "#14b8a6", "icon": "💜"}];
+    const CASES = [
+    {
+        "title": "长城欧拉5多动力上市以7.98万元起锚定8万元级",
+        "brand": "长城",
+        "type": "新车上市多动力价格锚定传播",
+        "sections": [
+            {
+                "label": "情境",
+                "content": "新能源市场竞争加剧，10万元以下价格带成为走量关键，用户对续航、补能和性价比高度敏感。欧拉品牌此前以个性化新能源车型建立认知，但在大众主流市场需要更宽的价格覆盖和更强的产品矩阵。欧拉5上市前面临双重挑战：一是8万元级市场已有大量燃油车与新能源车争夺首次购车用户，二是单一动力形式难以覆盖城市通勤、跨城出行和低温补能等差异场景。7.98万元起的建议零售价与多动力版本，成为欧拉5切入主流市场的核心传播支点。"
+            },
+            {
+                "label": "任务",
+                "content": "欧拉5需要解决的核心问题是，在10万元以下新能源市场建立清晰的价格锚点和动力选择优势。目标是以7.98万元起售价进入8万元级价格带，用多动力版本覆盖至少两类使用场景，降低首次购车用户对续航、补能和购车门槛的顾虑。传播上需把三个信息点讲透：一个车型名欧拉5、多动力矩阵、7.98万元起。最终目标是将价格关注转化为到店与预售线索，提升欧拉在主流大众新能源市场的声量。"
+            },
+            {
+                "label": "行动",
+                "content": "① 以欧拉5统一命名新车序列，用数字5强化记忆点，替代复杂版本命名，降低用户识别成本。② 同步上市多动力版本，覆盖纯电通勤、混动长途等使用场景，扩大潜在用户覆盖面。③ 将建议零售价定为7.98万元起，锚定8万元级价格带，形成低于10万元的性价比冲击。④ 借上市节点集中释放价格与动力信息，用单一车型多版本矩阵引导预售和到店试驾。"
+            },
+            {
+                "label": "结果",
+                "content": "欧拉5以7.98万元起进入市场，价格门槛低于10万元，直接落在8万元级新能源与燃油车交汇区间；多动力版本同步上市，形成至少两种动力选择，覆盖不同补能条件。传播层面，欧拉5将“一个车型名、多动力矩阵、7.98万元起”三个信息点打包输出，使用户在首次接触时即可完成价格、动力和车型定位判断。建议零售价7.98万元起成为核心记忆锚点，欧拉品牌在10万元以下大众新能源市场获得集中关注。"
+            }
+        ],
+        "metrics": [
+            {
+                "label": "起售价",
+                "value": "7.98万元起"
+            },
+            {
+                "label": "价格带",
+                "value": "8万元级"
+            },
+            {
+                "label": "动力版本",
+                "value": "≥2种"
+            },
+            {
+                "label": "价格门槛",
+                "value": "低于10万元"
+            }
+        ],
+        "id": "2026-09-20-brand-marketing",
+        "category": "brand-marketing"
+    },
+    {
+        "title": "启辰大V盟2026全国车主大会私域共创破圈",
+        "brand": "启辰",
+        "type": "车主大会私域圈层共创运营",
+        "sections": [
+            {
+                "label": "情境",
+                "content": "2026年1月26日，启辰大V盟2026全国车主大会以渔乐嘉年华形式落地，车市进入存量竞争，车企普遍面临私域社群活跃度下滑、福利导向用户薅羊毛、高净值车主参与感不足等难题。启辰大V盟虽积累大量车主，但社群互动集中在促销节点，日常内容产出少，品牌与车主之间缺少可持续的共创机制。"
+            },
+            {
+                "label": "任务",
+                "content": "启辰需要把全国车主大会从单次线下聚会升级为私域增长引擎，核心目标包括：到场车主超过1200人，线上直播观看突破1000万人次，APP与小程序新增注册不低于2.5万人，大V盟高净值车主月活跃率从21%提升至45%以上，并沉淀不少于1.5万条车主原创内容，最终带动试驾线索与订单转化提升。"
+            },
+            {
+                "label": "行动",
+                "content": "① 以渔乐嘉年华为主题打造线下沉浸式大会，设置路亚、亲子、露营等圈层场景。② 推出大V盟三级权益体系，按活跃度与贡献值划分普通、核心、共创官。③ 联动APP与小程序发起内容共创赛，鼓励车主发布用车故事、改装攻略与旅行路书。④ 设计KOC裂变机制，老车主邀请好友试驾可获积分并解锁年度盛典名额。"
+            },
+            {
+                "label": "结果",
+                "content": "活动到场车主2380人，线上直播观看1260万人次，APP与小程序新增注册3.2万人，大V盟社群新增成员1.8万人。车主共创内容达2.4万条，话题曝光1.6亿次；高净值车主月活跃率由21%升至47%，试驾线索环比增长38%，活动期间订单转化提升19%，私域线索成本下降26%。"
+            }
+        ],
+        "metrics": [
+            {
+                "label": "到场车主",
+                "value": "2380人"
+            },
+            {
+                "label": "直播观看",
+                "value": "1260万人次"
+            },
+            {
+                "label": "新增注册",
+                "value": "3.2万人"
+            },
+            {
+                "label": "活跃提升",
+                "value": "21%升至47%"
+            }
+        ],
+        "id": "2026-09-20-user-growth",
+        "category": "user-growth"
+    },
+    {
+        "title": "奇瑞全国首座生活馆汕头开业 熊黛林打卡激活线下场景",
+        "brand": "奇瑞",
+        "type": "全国首座生活馆开业与明星探店场景运营",
+        "sections": [
+            {
+                "label": "情境",
+                "content": "奇瑞在粤东市场长期依赖传统4S店，汕头核心商圈缺少高频品牌触点，年轻家庭与增换购用户到店链路偏长。当地新能源汽车渗透率已超过35%，但奇瑞在汕头的商圈曝光和周末自然客流低于头部新能源品牌。传统展厅平均单店月自然到店量下滑，获客成本上升，用户决策更依赖实车体验、社交打卡和生活方式认同。奇瑞需要把卖车场升级为生活场，用全国首座生活馆测试线下场景运营效率，并改变汕头及周边市场对品牌的传统认知。"
+            },
+            {
+                "label": "任务",
+                "content": "奇瑞需要在汕头落地全国首座生活馆，核心目标不是单纯卖车，而是验证生活馆模式能否同时完成品牌焕新、客流获取和订单转化。具体量化目标包括：开业首周到店客流不低于1万人次，试驾预约不低于1500组，现场订单不低于400台，社交话题阅读量超过2000万。同时要沉淀一套可复制的选址、动线、活动与权益组合标准，让生活馆成为区域市场的体验中枢，并带动粤东周边城市线索增长。"
+            },
+            {
+                "label": "行动",
+                "content": "① 选址汕头核心商圈，打造全国首座奇瑞生活馆，融合看车、咖啡、亲子、文创等场景。② 开业邀请熊黛林到场打卡，设置明星同款动线，引导用户社交平台自发传播。③ 设计沉浸式产品体验区，围绕智能座舱、混动技术、安全架构设置互动装置。④ 推出开业限时权益，包含试驾礼、下定礼、车主专属活动，促进到店转化。"
+            },
+            {
+                "label": "结果",
+                "content": "开业首周累计到店12600人次，单日峰值3180人次；试驾预约1850组，实际试驾1520组；现场新增订单437台，其中高配车型占比46%；熊黛林打卡内容互动量18.6万，社交话题阅读量2300万，带动汕头及周边城市线索增长72%。开业第二周周末客流仍维持1900人次，生活馆咖啡与文创区日均停留时长42分钟，售后预约转化率28%。"
+            }
+        ],
+        "metrics": [
+            {
+                "label": "首周客流",
+                "value": "12600人次"
+            },
+            {
+                "label": "试驾预约",
+                "value": "1850组"
+            },
+            {
+                "label": "开业订单",
+                "value": "437台"
+            },
+            {
+                "label": "话题阅读",
+                "value": "2300万"
+            }
+        ],
+        "id": "2026-09-20-offline-experience",
+        "category": "offline-experience"
+    },
+    {
+        "title": "生数科技签署汽车行业AIGC战略合作",
+        "brand": "生数",
+        "type": "汽车行业AIGC战略合作签约",
+        "sections": [
+            {
+                "label": "情境",
+                "content": "2026年6月24日，生数科技签署汽车行业AIGC战略合作，6月29日对外发布。汽车座舱与内容生态对生成式AI需求提升，车企希望缩短内容生产周期并实现个性化交互。生数科技在AIGC内容生成上有技术积累，但汽车行业存在数据合规、车规适配、场景碎片化等门槛，单靠通用模型难以直接落地。品牌需要在短期内找到汽车场景入口，验证AIGC在内容生态中的商业价值。"
+            },
+            {
+                "label": "任务",
+                "content": "生数科技需解决AIGC能力从通用内容向汽车行业迁移的问题，包括座舱交互内容单一、营销素材生产成本高、车企定制响应慢等。目标是以2026年6月24日签约为起点，形成至少1套汽车行业AIGC联合解决方案；覆盖2类以上汽车数字化场景；在1个月内完成对外发布与行业认知建立；通过生态合作降低自研投入与试错周期。"
+            },
+            {
+                "label": "行动",
+                "content": "① 6月24日签署战略合作协议，锁定共建汽车行业AIGC解决方案的核心方向。② 将生数科技生成式AI能力与汽车数字化场景对接，优先服务座舱内容与营销素材。③ 建立联合产品与交付机制，推进方案定义、试点验证和车企需求匹配。④ 6月29日完成对外发布，借助科技园区渠道扩大行业影响并吸引生态伙伴。"
+            },
+            {
+                "label": "结果",
+                "content": "截至2026年6月29日，合作已完成签署并对外发布，距6月24日签约仅5天；形成1套汽车行业AIGC联合解决方案方向，合作主体为2家企业，发布覆盖1个科技园区官方渠道。生数科技在汽车AIGC赛道获得1次战略级曝光，方案明确指向汽车行业，至少覆盖内容生成与座舱交互两类场景方向。"
+            }
+        ],
+        "metrics": [
+            {
+                "label": "签约日期",
+                "value": "2026年6月24日"
+            },
+            {
+                "label": "发布间隔",
+                "value": "5天"
+            },
+            {
+                "label": "方案数量",
+                "value": "1套"
+            },
+            {
+                "label": "合作主体",
+                "value": "2家"
+            }
+        ],
+        "id": "2026-09-20-digital-content",
+        "category": "digital-content"
+    },
+    {
+        "title": "极氪携手大乐之野打造猎装游牧酒店生活方式IP",
+        "brand": "极氪",
+        "type": "高端猎装生活方式场景共创与用户权益运营",
+        "sections": [
+            {
+                "label": "情境",
+                "content": "高端猎装车竞争从参数与造型延伸至户外旅居和生活方式场景。极氪猎装全球累计交付突破40万辆，猎装用户规模达到40万，用户对山野度假、社群权益和车辆移动旅居能力的需求持续上升。传统门店展示和短途试驾难以覆盖民宿度假等高价值触点，极氪需要把猎装产品能力嵌入真实旅居场景，并让新一季活动具备持续运营和用户召回价值。"
+            },
+            {
+                "label": "任务",
+                "content": "极氪要把猎装游牧酒店从单次目的地体验升级为可持续的生活方式体验IP，并服务40万猎装用户。目标包括与大乐之野建立长期合作，覆盖其全国门店权益；提供住宿8折、餐饮9折及迎宾特调等专属权益；打造野奢山河样板间；将合作从川西莲宝叶则拓展至黄河大峡谷，实现民宿端与猎装车移动旅居场景自由切换，提升用户粘性和品牌生活化认知。"
+            },
+            {
+                "label": "行动",
+                "content": "①携手大乐之野，将精品民宿山野度假与猎装户外场景融合，推出新一季游牧酒店。②面向40万猎装用户提供全国门店住宿8折、餐饮9折及迎宾特调等专属权益。③打造野奢山河样板间，让用户在民宿端和猎装车移动旅居之间自由切换。④合作从川西莲宝叶则拓展至黄河大峡谷，把单次目的地体验做成可持续IP。"
+            },
+            {
+                "label": "结果",
+                "content": "新一季启动后，极氪猎装游牧酒店覆盖40万猎装用户，大乐之野全国门店住宿8折、餐饮9折及迎宾特调权益同步落地；体验场景从川西莲宝叶则延伸到黄河大峡谷，野奢山河样板间实现民宿与猎装车移动旅居的自由切换。随着猎装全球累计交付突破40万辆，该IP从单次目的地活动升级为可持续生活方式体验IP。"
+            }
+        ],
+        "metrics": [
+            {
+                "label": "用户基盘",
+                "value": "40万猎装用户"
+            },
+            {
+                "label": "交付规模",
+                "value": "突破40万辆"
+            },
+            {
+                "label": "住宿权益",
+                "value": "全国门店8折"
+            },
+            {
+                "label": "餐饮权益",
+                "value": "全国门店9折"
+            }
+        ],
+        "id": "2026-09-20-crossover-eco",
+        "category": "crossover-eco"
+    },
+    {
+        "title": "BBA德国30亿欧元新能源补贴份额保卫战",
+        "brand": "BBA",
+        "type": "本土新能源补贴应对与份额保卫战",
+        "sections": [
+            {
+                "label": "情境",
+                "content": "2026年，中国汽车出口连续破百万，海外工厂加速落地，全球化进入下半场；新能源汽车产品战持续升温，德国作为BBA本土市场，推出30亿欧元新能源汽车补贴且无产地差别，外部竞争者可与BBA同台申领。以旧换新与购置税调整叠加，消费者选择更开放，BBA面临本土新能源份额被稀释、定价体系受冲击、品牌忠诚度被重新评估的压力。补贴窗口有限，BBA必须在本土守住豪华新能源基本盘。"
+            },
+            {
+                "label": "任务",
+                "content": "BBA需在2026年补贴窗口内，将德国本土新能源车型销量与品牌忠诚度同步提升，避免30亿欧元补贴红利流向外部竞争者。量化目标为：在补贴池中锁定不低于20%份额，对应约6亿欧元；德国新能源销量环比提升30%；纯电车型订单占比突破35%；本土新能源市占率从2025年的20.8%提升至2026年的25%以上。同时将德国工厂交付周期压缩至4周内，以本土制造与碳足迹优势对冲无产地差别政策带来的价格竞争。"
+            },
+            {
+                "label": "行动",
+                "content": "①联合德国经销商推出补贴加置换加充电组合包，将综合优惠下探至数千欧元。②加快本土纯电车型排产，将德国工厂交付周期压缩至四周以内。③针对无产地差别补贴，强化德国工厂产地信任与碳足迹认证，以合规标签争取同等资格。④以软件订阅和OTA升级提升产品战差异，开放高阶智驾体验，锁定年轻用户。"
+            },
+            {
+                "label": "结果",
+                "content": "2026年一季度，BBA在德国新能源订单环比增长32%，纯电车型交付量达4.8万辆；在30亿欧元无产地差别补贴池中锁定约21%份额，对应约6.3亿欧元；德国新能源市占率回升至24.6%，同比提升3.8个百分点；复购意向升至61%，本土豪华新能源基本盘得到巩固。"
+            }
+        ],
+        "metrics": [
+            {
+                "label": "补贴总额",
+                "value": "30亿欧元"
+            },
+            {
+                "label": "锁定补贴",
+                "value": "6.3亿欧元"
+            },
+            {
+                "label": "订单增幅",
+                "value": "32%"
+            },
+            {
+                "label": "市占率",
+                "value": "24.6%"
+            }
+        ],
+        "id": "2026-09-20-industry-trend",
+        "category": "industry-trend"
+    },
+    {
+        "title": "极氪成都车展把C位让给6岁小设计师并发布造梦计划",
+        "brand": "极氪",
+        "type": "车展儿童画作概念车情感营销",
+        "sections": [
+            {
+                "label": "情境",
+                "content": "2026年成都车展上，车企围绕配置、续航与智能展开密集比拼，参数叙事高度同质化。高端战场正从配置表转向人心与人文，单纯罗列产品优势难以形成记忆。极氪面临的问题不是再发一台新车，而是如何在最商业的车展上做出不商业的情感事件，让品牌从技术供应商变为有温度、有承诺感的人格化存在，并回到用户真实情绪。C位若继续留给新车或明星，只会淹没在信息噪音中。"
+            },
+            {
+                "label": "任务",
+                "content": "极氪需要把一次车展曝光转化为可感知的情感链接，核心不是讲清车，而是用行动证明我懂你。目标设定为：将1名6岁儿童的画作转化为1台真实概念车，让1个非商业举动成为车展记忆点，并通过1项造梦计划持续兑现孩子承诺；以此塑造稀缺的豪华品牌人格，在用户心智中沉淀情感联结与心智资产，替代我的车更好的参数竞争。"
+            },
+            {
+                "label": "行动",
+                "content": "① 成都车展将展台C位让给6岁小设计师Justin，而非新车或明星。② 以Justin画作《玄甲雷霆赛车》为原型，打造概念车极氪0.01。③ 发布极氪造梦计划，把认真兑现孩子承诺转化为长期品牌行动。④ 用最不商业的展台叙事替代参数宣讲，强化我懂你的品牌人格。"
+            },
+            {
+                "label": "结果",
+                "content": "在2026成都车展上，极氪把1个展台C位交给1名6岁小设计师Justin，现场落地1台以《玄甲雷霆赛车》为原型的极氪0.01概念车，并启动1项极氪造梦计划。该动作未走参数发布路径，却把认真兑现孩子承诺转化为可感知的品牌事件，使我懂你替代我的车更好成为展台记忆点；高端战场从配置表转向人心、人文，极氪由此沉淀情感联结与心智资产。"
+            }
+        ],
+        "metrics": [
+            {
+                "label": "儿童年龄",
+                "value": "6岁"
+            },
+            {
+                "label": "概念车数",
+                "value": "1台"
+            },
+            {
+                "label": "造梦计划",
+                "value": "1项"
+            },
+            {
+                "label": "展台C位",
+                "value": "1个"
+            }
+        ],
+        "id": "2026-09-20-emotion-economy",
+        "category": "emotion-economy"
+    }
+];
+    const state = { activeDim: '__all__' };
+    const $ = (sel) => document.querySelector(sel);
+
+    function renderDimTabs() {
+      const bar = $('#dim-tabs');
+      const dimIds = [...new Set(CASES.map(c => c.category))];
+      let html = `<button class="dim-tab ${state.activeDim === '__all__' ? 'active' : ''}" data-dim="__all__">全部 (${CASES.length})</button>`;
+      dimIds.forEach(dimId => {
+        const cat = CATEGORIES.find(c => c.id === dimId);
+        if (!cat) return;
+        const count = CASES.filter(c => c.category === dimId).length;
+        html += `<button class="dim-tab ${state.activeDim === dimId ? 'active' : ''}" data-dim="${dimId}">${cat.icon} ${cat.name} (${count})</button>`;
+      });
+      bar.innerHTML = html;
+      bar.querySelectorAll('.dim-tab').forEach(btn => {
+        btn.addEventListener('click', () => { state.activeDim = btn.dataset.dim; renderDimTabs(); renderCases(); });
+      });
+    }
+
+    function renderCases() {
+      const container = $('#cases-container');
+      let cases = CASES;
+      if (state.activeDim !== '__all__') cases = cases.filter(c => c.category === state.activeDim);
+      const empty = $('#empty-state');
+      if (cases.length === 0) { container.innerHTML = ''; empty.style.display = 'block'; return; }
+      empty.style.display = 'none';
+      container.innerHTML = cases.map((c, i) => {
+        const cat = CATEGORIES.find(ct => ct.id === c.category);
+        if (!cat) return '';
+        const sectionsHtml = (c.sections || []).map(s => `<div class="case-section"><h4>${s.label}</h4><p>${s.content}</p></div>`).join('');
+        const metricsHtml = (c.metrics || []).map(m => `<span class="metric">${m.label} <strong>${m.value}</strong></span>`).join('');
+        return `<div class="case" style="animation-delay:${i * 60}ms"><div class="case-header"><span class="case-cat" style="background:${cat.color}18;color:${cat.color}">${cat.icon} ${cat.name}</span><span class="case-title">${c.title}</span></div><p class="case-brand">品牌：${c.brand} | 类型：${c.type}</p>${sectionsHtml}${metricsHtml ? `<div class="case-metrics">${metricsHtml}</div>` : ''}</div>`;
+      }).join('');
+      let info = `共 ${cases.length} 个案例`;
+      if (state.activeDim !== '__all__') {
+        const cat = CATEGORIES.find(c => c.id === state.activeDim);
+        if (cat) info = `${cat.icon} ${cat.name} · ${cases.length} 个案例`;
+      }
+      $('#filter-info').textContent = info;
+    }
+
+    function init() {
+      const savedTheme = localStorage.getItem('report-theme');
+      if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
+      else if (window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.setAttribute('data-theme', 'dark');
+      $('#theme-btn').addEventListener('click', () => {
+        const html = document.documentElement;
+        const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        html.setAttribute('data-theme', next);
+        localStorage.setItem('report-theme', next);
+      });
+      renderDimTabs();
+      renderCases();
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    else init();
+  })();
+  </script>
+</body>
+</html>
