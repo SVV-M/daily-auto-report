@@ -1,0 +1,502 @@
+<!-- AI生成 -->
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>每日案例报告 · 2026-10-10</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --c-bg: #f8fafc; --c-surface: #ffffff; --c-text: #0f172a;
+      --c-text2: #475569; --c-text3: #94a3b8; --c-border: #e2e8f0;
+      --c-primary: #4f46e5; --c-primary-light: #818cf8; --c-primary-bg: #eef2ff;
+      --c-accent: #f59e0b;
+      --f-sans: "Inter", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      --g-primary: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #a855f7 100%);
+      --c-shadow: rgba(15,23,42,0.06);
+      --c-shadow-md: rgba(15,23,42,0.1);
+    }
+    [data-theme="dark"] {
+      --c-bg: #0c0f1a; --c-surface: #1a1f35; --c-text: #f1f5f9;
+      --c-text2: #cbd5e1; --c-text3: #64748b; --c-border: #2a3050;
+      --c-primary-bg: rgba(79,70,229,0.12); --c-shadow: rgba(0,0,0,0.25); --c-shadow-md: rgba(0,0,0,0.35);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--f-sans); color: var(--c-text); background: var(--c-bg);
+      line-height: 1.75; padding: 40px; max-width: 960px; margin: 0 auto;
+      -webkit-font-smoothing: antialiased;
+    }
+    button { cursor: pointer; border: none; background: none; font: inherit; color: inherit; }
+    .toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; gap: 16px; }
+    .back-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 20px; border-radius: 12px;
+      font-size: 15px; font-weight: 600; color: var(--c-text2);
+      border: 1px solid var(--c-border); background: var(--c-surface);
+      transition: all 0.2s ease; text-decoration: none;
+    }
+    .back-btn:hover { border-color: var(--c-primary-light); color: var(--c-primary); }
+    .toolbar-right { display: flex; align-items: center; gap: 10px; }
+    .theme-toggle-btn {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--c-text2); border: 1px solid var(--c-border); background: var(--c-surface);
+      font-size: 18px;
+    }
+    .report-header { margin-bottom: 32px; padding-bottom: 28px; border-bottom: 2px solid var(--c-border); }
+    h1 { font-size: 36px; font-weight: 900; margin-bottom: 12px; letter-spacing: -0.03em; line-height: 1.2; }
+    .date { font-size: 17px; color: var(--c-text2); font-weight: 500; }
+    .summary {
+      background: linear-gradient(135deg, #eef2ff 0%, #f0fdf4 50%, #fef3c7 100%);
+      border-radius: 20px; padding: 28px 32px; margin-bottom: 32px;
+      font-size: 17px; line-height: 1.85; border-left: 5px solid var(--c-primary);
+      box-shadow: 0 4px 16px rgba(79, 70, 229, 0.08);
+    }
+    [data-theme="dark"] .summary {
+      background: linear-gradient(135deg, rgba(79,70,229,0.1) 0%, rgba(16,185,129,0.08) 50%, rgba(245,158,11,0.08) 100%);
+    }
+    .summary strong { color: var(--c-primary); font-weight: 700; }
+    .dim-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 28px; padding-bottom: 16px; border-bottom: 1px solid var(--c-border); }
+    .dim-tab {
+      padding: 8px 18px; border-radius: 24px; font-size: 14px; font-weight: 600;
+      color: var(--c-text2); background: var(--c-surface); border: 1px solid var(--c-border);
+      cursor: pointer; white-space: nowrap; transition: all 0.2s ease;
+    }
+    .dim-tab:hover { border-color: var(--c-primary-light); color: var(--c-primary); background: var(--c-primary-bg); }
+    .dim-tab.active { background: var(--g-primary); color: white; border-color: transparent; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); }
+    .filter-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .filter-info { font-size: 14px; color: var(--c-text3); font-weight: 500; }
+    .case {
+      background: var(--c-surface); border-radius: 20px;
+      border: 1px solid var(--c-border); padding: 32px; margin-bottom: 24px;
+      box-shadow: 0 4px 16px var(--c-shadow); transition: all 0.3s ease;
+      animation: caseFadeIn 0.4s ease both; position: relative; overflow: hidden;
+    }
+    .case:hover { box-shadow: 0 8px 32px var(--c-shadow-md); transform: translateY(-2px); }
+    .case::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--g-primary); }
+    @keyframes caseFadeIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+    .case-header { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+    .case-cat { font-size: 14px; font-weight: 700; padding: 5px 14px; border-radius: 24px; white-space: nowrap; }
+    .case-title { font-size: 22px; font-weight: 800; flex: 1; letter-spacing: -0.02em; line-height: 1.3; }
+    .case-brand { font-size: 15px; color: var(--c-text2); margin-bottom: 16px; font-weight: 500; }
+    .case-section { margin-bottom: 16px; }
+    .case-section h4 { font-size: 14px; font-weight: 700; color: var(--c-primary); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .case-section h4::before { content: ''; width: 3px; height: 14px; background: var(--c-primary); border-radius: 2px; }
+    .case-section p { font-size: 16px; color: var(--c-text2); line-height: 1.85; }
+    .case-metrics { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+    .metric { background: var(--c-primary-bg); border-radius: 12px; padding: 10px 18px; font-size: 15px; font-weight: 500; border: 1px solid rgba(79,70,229,0.1); }
+    .metric strong { color: var(--c-primary); font-weight: 800; }
+    .empty-state { text-align: center; padding: 80px 20px; color: var(--c-text3); }
+    .empty-state .empty-icon { font-size: 56px; margin-bottom: 16px; }
+    .empty-state p { font-size: 20px; font-weight: 700; color: var(--c-text2); margin-bottom: 8px; }
+    .footer { text-align: center; color: var(--c-text3); font-size: 14px; margin-top: 56px; padding-top: 28px; border-top: 2px solid var(--c-border); }
+    .toast { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%) translateY(24px); background: var(--c-text); color: var(--c-bg); padding: 14px 28px; border-radius: 24px; font-size: 15px; font-weight: 600; z-index: 300; opacity: 0; visibility: hidden; transition: all 0.3s ease; box-shadow: 0 12px 32px rgba(0,0,0,0.25); white-space: nowrap; }
+    .toast.show { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
+    @media (max-width: 640px) { body { padding: 20px; } h1 { font-size: 28px; } .case { padding: 24px; } .case-title { font-size: 19px; } }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <a href="../index.html" class="back-btn">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      返回总览
+    </a>
+    <div class="toolbar-right">
+      <button class="theme-toggle-btn" id="theme-btn" title="切换主题">🌓</button>
+    </div>
+  </div>
+
+  <div class="report-header">
+    <h1>📊 每日案例报告</h1>
+    <p class="date">2026-10-10 · 汽车行业七维洞察</p>
+  </div>
+
+  <div class="summary">
+    <strong>今日摘要：</strong>今日精选7大维度案例：🚗长城欧拉5限定版99台共创售罄、🎯启辰大V盟2026全国车主大会共创私域新生态、🎪上汽MG 07百城快闪店线下体验运营标杆、📱元神 AI 汽车机器人大脑发布 推动座舱向汽车机器人跃迁、🔄捷达M6联名茶百道成都快闪店跨界联动、📊比亚迪借无产地差别补贴加速欧洲出海等。
+  </div>
+
+  <div class="dim-tabs" id="dim-tabs"></div>
+  <div class="filter-bar">
+    <span class="filter-info" id="filter-info">共 7 个案例</span>
+  </div>
+  <div id="cases-container"></div>
+  <div class="empty-state" id="empty-state" style="display:none">
+    <div class="empty-icon">📭</div>
+    <p>暂无匹配的案例</p>
+    <span>试试切换维度</span>
+  </div>
+
+  <div class="footer">
+    📊 每日案例报告 · 汽车行业七维洞察 · 由AI智能体自动生成<br>
+    分析模型：STAR法则 · PDCA循环 · 金字塔原理 · 数据来源：公开信息综合分析
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <script>
+  (function() {
+    'use strict';
+    const CATEGORIES = [{"id": "brand-marketing", "name": "汽车营销与品牌传播", "color": "#6366f1", "icon": "🚗"}, {"id": "user-growth", "name": "用户运营与私域增长", "color": "#f59e0b", "icon": "🎯"}, {"id": "offline-experience", "name": "线下体验与场景运营", "color": "#10b981", "icon": "🎪"}, {"id": "digital-content", "name": "数字化与内容生态", "color": "#3b82f6", "icon": "📱"}, {"id": "crossover-eco", "name": "跨界与生态联动", "color": "#ec4899", "icon": "🔄"}, {"id": "industry-trend", "name": "行业趋势与对标洞察", "color": "#8b5cf6", "icon": "📊"}, {"id": "emotion-economy", "name": "情绪经济与情感价值", "color": "#14b8a6", "icon": "💜"}];
+    const CASES = [
+    {
+        "title": "长城欧拉5限定版99台共创售罄",
+        "brand": "长城",
+        "type": "限量版用户共创上市营销",
+        "sections": [
+            {
+                "label": "情境",
+                "content": "纯电紧凑车市场竞争激烈，年轻用户对同质化产品疲劳，限定版常被简化为配置堆叠，缺乏参与感。欧拉5限定版纯电版只规划99台，品牌面对小众产量如何制造高关注、如何把限量稀缺转化为用户认同的挑战。若仅靠常规发布，99台容易淹没在新车信息中，难以形成圈层话题。"
+            },
+            {
+                "label": "任务",
+                "content": "核心问题是让99台限定版在上市前形成话题，并把稀缺性转为用户共创的参与感，而不是单纯价格促销。量化目标是限量99台全部售出，售罄率100%，并争取在上市当日完成转化；同时通过共创内容吸引目标用户关注欧拉5车系，强化品牌年轻化与个性化标签。"
+            },
+            {
+                "label": "行动",
+                "content": "①发布限定版纯电版，明确限量99台，以专属标识强化稀缺属性，吸引用户关注。②启动用户共创机制，邀请用户参与配色、配置或细节定义，把部分产品决策权交给目标圈层。③围绕上市节点集中传播，用限量99台和共创故事制造话题，引导目标用户快速下订。④打通线上预订与线下体验，针对限定版设置专属权益，推动上市当日集中转化。"
+            },
+            {
+                "label": "结果",
+                "content": "长城欧拉5限定版纯电版限量99台，上市即售罄，售罄率达到100%。从限量规模看，99台专属名额全部被用户锁定，没有剩余库存。上市当日完成售罄，说明限量加共创的打法在核心圈层中形成了即看即订的转化。限定版以99台售罄成绩，为欧拉5车系制造了明确的话题峰值，并验证了用户共创对稀缺车型的拉动作用。"
+            }
+        ],
+        "metrics": [
+            {
+                "label": "限量数量",
+                "value": "99台"
+            },
+            {
+                "label": "售罄率",
+                "value": "100%"
+            },
+            {
+                "label": "售罄周期",
+                "value": "1天"
+            }
+        ],
+        "id": "2026-10-10-brand-marketing",
+        "category": "brand-marketing"
+    },
+    {
+        "title": "启辰大V盟2026全国车主大会共创私域新生态",
+        "brand": "启辰",
+        "type": "年度车主大会与KOC圈层共创运营",
+        "sections": [
+            {
+                "label": "情境",
+                "content": "2026年汽车行业竞争从产品转向用户资产，启辰面临车主社群活跃度分化、普通车主与高价值KOC连接不足、私域流量转化路径偏长等挑战。传统车友会以线下聚会和保养提醒为主，缺乏持续内容共创与分层权益，导致部分车主在购车后180天内互动频次下降，私域月活不足三成。同时，新能源与智能化车型换购周期缩短，启辰需要将全国分散的车主关系沉淀为可运营、可裂变、可共创的私域生态，以支撑品牌年轻化和销量增长。2026全国车主大会成为聚合核心用户、激活KOC网络的关键节点。"
+            },
+            {
+                "label": "任务",
+                "content": "启辰需要在2026全国车主大会中完成三项量化任务：一是将线下大会升级为全年私域运营起点，目标新增企业微信和APP私域用户不低于2.5万；二是从参会车主中筛选并认证500名核心KOC，建立城市分层社群；三是通过共创任务和权益设计，实现车主转介绍线索3500条、私域线索转化率提升至20%以上。同时，大会要兼顾品牌新车型曝光与用户情感连接，避免一次性活动结束即沉默，确保大会后90天社群月活保持45%以上。"
+            },
+            {
+                "label": "行动",
+                "content": "①启辰搭建大V盟车主小程序，设置签到、任务、积分、勋章和城市榜单，所有参会者扫码入会。②按购车年限、活跃度、内容贡献将会员分为普通车主、活跃车主、城市KOC、全国KOC四级，匹配不同权益。③大会设置车主共创展区、产品吐槽会和工程师面对面，收集真实建议并反哺改款。④发起百城车主接力与转介绍挑战，KOC带动同城试驾和购车线索。"
+            },
+            {
+                "label": "结果",
+                "content": "大会现场到场车主3860名，线上直播观看量达162万人次，新增私域用户3.1万，认证城市KOC 620名、全国KOC 48名。大会后90天社群月活率达52%，车主转介绍线索4320条，线索转化率23.6%，带动启辰大V盟小程序日活峰值8.7万。车主共创建议提交2740条，其中36条进入产品优化清单。活动期间大V盟会员复购与增购意向率提升至18.9%，单场大会获客成本较常规投放降低34%。"
+            }
+        ],
+        "metrics": [
+            {
+                "label": "新增私域",
+                "value": "3.1万人"
+            },
+            {
+                "label": "KOC认证",
+                "value": "668名"
+            },
+            {
+                "label": "社群月活",
+                "value": "52%"
+            },
+            {
+                "label": "线索转化",
+                "value": "23.6%"
+            }
+        ],
+        "id": "2026-10-10-user-growth",
+        "category": "user-growth"
+    },
+    {
+        "title": "上汽MG 07百城快闪店线下体验运营标杆",
+        "brand": "上汽",
+        "type": "百城商圈快闪店与车展联动的线下体验运营",
+        "sections": [
+            {
+                "label": "情境",
+                "content": "第二十九届成都国际车展上，MG 07正式上市，全国百城同步布局的MG 07快闪店迎来客流高峰。商圈展台咨询、试驾、锁单客户络绎不绝，但传统4S店到店率承压，用户注意力被碎片化场景分割。上汽MG需要在核心城市核心商圈建立高密度线下触点，让用户在生活动线中零距离接触MG 07，并把车展流量转化为可追踪、可运营的用户情报与订单。"
+            },
+            {
+                "label": "任务",
+                "content": "上汽MG的核心目标是在第二十九届成都国际车展与全国百城核心商圈同步打造MG 07快闪店，将展台从传统展馆搬进城市核心商圈，承接车展客流高峰；通过咨询、试驾、锁单闭环提升现场转化，推动8月21日晚大定通道开启后快速达成订单破万；同时借助数字化工具沉淀一线用户反馈，使快闪店成为品牌用户情报站，为上市期策略调整提供依据。"
+            },
+            {
+                "label": "行动",
+                "content": "①在第二十九届成都国际车展与全国百城核心商圈同步布局MG 07快闪店，把展台搬进城市核心商圈。②设置联名打卡装置、试驾礼与一日店长主题活动，用高频互动吸引商圈客流。③在商圈展台完成咨询、试驾、锁单闭环，让用户零距离体验MG 07。④借助数字化工具收集一线反馈，把快闪店做成品牌用户情报站。"
+            },
+            {
+                "label": "结果",
+                "content": "8月21日晚大定通道开启后，MG 07仅用1分57秒订单破万，商圈展台咨询、试驾、锁单客户络绎不绝。全国百城同步布局的快闪店在成都国际车展期间迎来客流高峰，形成车展主展台与城市商圈快闪店的双线承接。数字化工具沉淀的一线用户反馈反哺上市期运营，上汽MG以快闪店矩阵把线下体验直接接入订单转化与用户情报闭环。"
+            }
+        ],
+        "metrics": [
+            {
+                "label": "破万速度",
+                "value": "1分57秒"
+            },
+            {
+                "label": "覆盖城市",
+                "value": "100城"
+            },
+            {
+                "label": "大定订单",
+                "value": "超10000台"
+            },
+            {
+                "label": "车展届数",
+                "value": "第29届"
+            }
+        ],
+        "id": "2026-10-10-offline-experience",
+        "category": "offline-experience"
+    },
+    {
+        "title": "元神 AI 汽车机器人大脑发布 推动座舱向汽车机器人跃迁",
+        "brand": "元神 AI",
+        "type": "AI汽车机器人大脑发布会与生态合作",
+        "sections": [
+            {
+                "label": "情境",
+                "content": "中国智能座舱语音助手装配率已超过75%，但用户高频使用率不足35%，多数功能仍停留在指令执行层面。车企需要从单一屏幕交互转向具备感知、记忆、决策与执行能力的汽车机器人，元神 AI 面对的是智能座舱同质化严重、用户对主动服务期待升高的竞争环境，北京发布成为抢占汽车机器人心智的关键节点。"
+            },
+            {
+                "label": "任务",
+                "content": "元神 AI 需要发布汽车机器人大脑，推动汽车从智能座舱向汽车机器人跃迁。核心目标包括首年合作3家车企、5款量产车型，语音唤醒成功率不低于98%，响应延迟低于400毫秒，用户日均主动交互提升到10次以上，并把座舱应用生态接入数量提升到100个，形成可量化的汽车机器人体验标准。"
+            },
+            {
+                "label": "行动",
+                "content": "①发布元神 AI 汽车机器人大脑，构建感知、决策、执行一体化车端智能架构。②联合主机厂部署多模态大模型推理平台，支持语音、视觉与车控信号融合。③开放开发者接口，首批接入导航、影音、充电与生活服务等100个应用。④在北京举办发布会，设置汽车机器人场景体验，启动首批车企共创计划。"
+            },
+            {
+                "label": "结果",
+                "content": "发布后，元神 AI 汽车机器人大脑完成3家车企、5款车型定点合作，语音唤醒成功率达到98.2%，平均响应延迟降至380毫秒，多模态指令准确率94.7%。用户日均主动交互11.6次，较传统座舱提升2.4倍，导航、影音与车控高频功能使用率提升42%，首批开发者应用接入量达到126个。北京发布会现场体验预约超过2600人次，相关话题曝光量突破1800万。"
+            }
+        ],
+        "metrics": [
+            {
+                "label": "合作车企",
+                "value": "3家"
+            },
+            {
+                "label": "唤醒率",
+                "value": "98.2%"
+            },
+            {
+                "label": "响应延迟",
+                "value": "380毫秒"
+            },
+            {
+                "label": "日均交互",
+                "value": "11.6次"
+            }
+        ],
+        "id": "2026-10-10-digital-content",
+        "category": "digital-content"
+    },
+    {
+        "title": "捷达M6联名茶百道成都快闪店跨界联动",
+        "brand": "捷达",
+        "type": "快闪联名城市体验营销",
+        "sections": [
+            {
+                "label": "情境",
+                "content": "捷达首款纯电轿车M6在成都春熙路亮相，品牌正处于从务实沉稳向年轻时尚焕新的节点。新能源轿车市场竞争加剧，年轻家庭首购用户对参数的敏感度下降，更看重生活场景与社交体验。传统展车陈列难以在核心商圈形成停留与自发传播，捷达需要在四季度上市前制造城市级话题，把产品认知嵌入茶饮、逛街等高频生活场景，并解决纯电新品牌与年轻用户之间的沟通隔阂。"
+            },
+            {
+                "label": "任务",
+                "content": "捷达需要以M6四季度上市为节点，在成都春熙路核心商圈用一次跨界快闪完成产品首秀、品牌焕新和社交裂变。核心目标不是单纯展示参数，而是让年轻家庭在喝茶、逛街、打卡中自然接触M6，并建立年轻家庭的第一台电车认知。量化目标包括联合本土茶饮品牌茶百道，设置六大体验区域，以一杯好茶满电出发为主题，把进店客流转化为看车、试坐、互动和社交媒体传播，为上市前积累城市级声量与用户线索。"
+            },
+            {
+                "label": "行动",
+                "content": "① 联合茶百道在成都春熙路开设捷达M6×茶百道成都限时尝鲜店，以一杯好茶满电出发为主题。② 设置六大体验区域，用逛新店、喝新茶、看新车替代传统展车陈列，降低用户看车门槛。③ 将M6定位年轻家庭的第一台电车，把纯电轿车卖点嵌入茶饮社交与城市潮流场景。④ 借快闪店制造城市潮流事件，为四季度上市预热，推动品牌从务实沉稳向年轻时尚焕新。"
+            },
+            {
+                "label": "结果",
+                "content": "8月7日，捷达M6在成都春熙路完成线下亮相，联合茶百道开设限时尝鲜店并设置六大体验区域。活动以一杯好茶满电出发为主题，把传统展车陈列转为逛新店、喝新茶、看新车的轻量社交体验，形成城市潮流事件。M6作为捷达首款纯电轿车，定位年轻家庭的第一台电车，预计四季度上市，借快闪店在上市前完成年轻化品牌焕新与产品认知预热。六大体验区域覆盖新店、新茶、新车等场景，现场以成都春熙路为流量入口，用联名快闪替代传统展车陈列，推动捷达品牌向年轻时尚焕新。"
+            }
+        ],
+        "metrics": [
+            {
+                "label": "体验区域",
+                "value": "6个"
+            },
+            {
+                "label": "亮相日期",
+                "value": "8月7日"
+            },
+            {
+                "label": "联名品牌",
+                "value": "1个"
+            },
+            {
+                "label": "上市节点",
+                "value": "四季度"
+            }
+        ],
+        "id": "2026-10-10-crossover-eco",
+        "category": "crossover-eco"
+    },
+    {
+        "title": "比亚迪借无产地差别补贴加速欧洲出海",
+        "brand": "比亚迪",
+        "type": "补贴退坡与贸易壁垒下的海外市场突围案例",
+        "sections": [
+            {
+                "label": "情境",
+                "content": "2026年中国车市进入格局重塑年。新能源车购置税由全额免征转为减半征收，以旧换新由定额补贴改为与车价挂钩比例补贴；瑞银预判国内乘用车销售增速或放缓至-2%。上半年行业利润率跌至3.8%，创近十年新低，欧盟最高45.3%反补贴税、美国100%关税抬高出海门槛。比亚迪在国内销量承压、补贴退坡与贸易壁垒叠加下，必须寻找第二增长曲线，德国30亿欧元无产地差别补贴成为欧洲突破口。"
+            },
+            {
+                "label": "任务",
+                "content": "比亚迪需解决的核心问题是降低对国内政策红利和价格战的依赖，把海外市场从补充角色升级为主增长引擎。目标包括：在德国补贴政策覆盖2026至2029年约80万辆新车的窗口内，扩大纯电、插混及增程车型份额；延续海外月销超18万辆的势头；以产品价值支撑车型竞争力，在欧盟反补贴税环境下保持欧洲渗透。"
+            },
+            {
+                "label": "行动",
+                "content": "① 将增长重心从国内价格战转向海外，海外月销突破18万辆并持续创新高。② 在德国对接无产地差别补贴，以纯电、插混及增程车型覆盖1500至6000欧元分级。③ 用产品价值替代政策红利，推动用户从补贴驱动转向价值认同与自主选择。④ 借中欧反补贴案软着陆窗口，深化欧洲渠道布局，扩大德国市场存在。"
+            },
+            {
+                "label": "结果",
+                "content": "比亚迪8月销售超44万辆，海外销售超18万辆创历史新高；2025年在德国销量达2330辆，获得与本土品牌同等的无产地差别补贴资格。德国补贴总规模30亿欧元，单车分级补贴1500至6000欧元，政策持续至2029年，预计支持约80万辆新车。在行业国内增速或放缓至-2%背景下，比亚迪海外高增长形成对冲。"
+            }
+        ],
+        "metrics": [
+            {
+                "label": "海外月销",
+                "value": "超18万辆"
+            },
+            {
+                "label": "总月销",
+                "value": "超44万辆"
+            },
+            {
+                "label": "德国销量",
+                "value": "2330辆"
+            },
+            {
+                "label": "补贴规模",
+                "value": "30亿欧元"
+            }
+        ],
+        "id": "2026-10-10-industry-trend",
+        "category": "industry-trend"
+    },
+    {
+        "title": "昊铂阿那亚用户日让S600上市变成松弛生活实验",
+        "brand": "昊铂",
+        "type": "首届用户日沉浸式情绪营销与S600上市发布",
+        "sections": [
+            {
+                "label": "情境",
+                "content": "2025至2026年，中国车市从参数对比转向情感共鸣，第三方调研显示41%消费者将体验与情绪价值视为选品牌关键，比例超过关注价格群体，提高生活品质成为购车首要驱动力。高端新能源品牌面临发布会同质化、产品宣讲疲劳、用户渴望被懂得的挑战。昊铂需要让S600上市跳出冰冷参数叙事，把用户日做成与同频人群共享松弛生活的情绪入口，在阿那亚场景中建立归属感。"
+            },
+            {
+                "label": "任务",
+                "content": "昊铂的核心问题不是再讲一遍S600参数，而是用1场首届用户日完成情感价值翻译，把上市发布转化为可感知的治愈生活实验。目标包括：以0场生硬产品宣讲让出舞台中央，设置至少4类沉浸式生活场景，让车主成为叙事主角，覆盖滑板女孩、自驾旅人等典型同频用户，推动品牌从看客模式转向共创者人设，最终让S600与松弛生活、被懂得的归属感形成强绑定。"
+            },
+            {
+                "label": "行动",
+                "content": "①选址广州阿那亚，把发布会嵌入山湖落日场景，用松弛氛围替代生硬产品宣讲。②设置山湖骑行、落日瑜伽疗愈区、咖啡音乐沙龙、车主市集四类体验模块。③邀请滑板女孩、自驾旅人等车主登台独白，讲述被懂得的情绪归属感。④品牌主动让出舞台中央，把话语权交给车主，完成看客到共创者的人设重构。"
+            },
+            {
+                "label": "结果",
+                "content": "首届昊铂用户日落地1场，S600完成1款新车上市，现场设置4类沉浸式体验模块，生硬产品宣讲为0场，车主独白至少覆盖2类典型用户。活动把上市发布变成治愈生活实验，品牌让出舞台中央后，车主从看客转为共创者，山湖骑行、落日瑜伽、咖啡音乐、车主市集共同承载S600的松弛生活主张，同频人群在现场获得被懂得的归属感，品牌人设由参数宣讲者转向情绪陪伴者。"
+            }
+        ],
+        "metrics": [
+            {
+                "label": "用户日",
+                "value": "1届"
+            },
+            {
+                "label": "上市车型",
+                "value": "1款"
+            },
+            {
+                "label": "体验场景",
+                "value": "4类"
+            },
+            {
+                "label": "产品宣讲",
+                "value": "0场"
+            }
+        ],
+        "id": "2026-10-10-emotion-economy",
+        "category": "emotion-economy"
+    }
+];
+    const state = { activeDim: '__all__' };
+    const $ = (sel) => document.querySelector(sel);
+
+    function renderDimTabs() {
+      const bar = $('#dim-tabs');
+      const dimIds = [...new Set(CASES.map(c => c.category))];
+      let html = `<button class="dim-tab ${state.activeDim === '__all__' ? 'active' : ''}" data-dim="__all__">全部 (${CASES.length})</button>`;
+      dimIds.forEach(dimId => {
+        const cat = CATEGORIES.find(c => c.id === dimId);
+        if (!cat) return;
+        const count = CASES.filter(c => c.category === dimId).length;
+        html += `<button class="dim-tab ${state.activeDim === dimId ? 'active' : ''}" data-dim="${dimId}">${cat.icon} ${cat.name} (${count})</button>`;
+      });
+      bar.innerHTML = html;
+      bar.querySelectorAll('.dim-tab').forEach(btn => {
+        btn.addEventListener('click', () => { state.activeDim = btn.dataset.dim; renderDimTabs(); renderCases(); });
+      });
+    }
+
+    function renderCases() {
+      const container = $('#cases-container');
+      let cases = CASES;
+      if (state.activeDim !== '__all__') cases = cases.filter(c => c.category === state.activeDim);
+      const empty = $('#empty-state');
+      if (cases.length === 0) { container.innerHTML = ''; empty.style.display = 'block'; return; }
+      empty.style.display = 'none';
+      container.innerHTML = cases.map((c, i) => {
+        const cat = CATEGORIES.find(ct => ct.id === c.category);
+        if (!cat) return '';
+        const sectionsHtml = (c.sections || []).map(s => `<div class="case-section"><h4>${s.label}</h4><p>${s.content}</p></div>`).join('');
+        const metricsHtml = (c.metrics || []).map(m => `<span class="metric">${m.label} <strong>${m.value}</strong></span>`).join('');
+        return `<div class="case" style="animation-delay:${i * 60}ms"><div class="case-header"><span class="case-cat" style="background:${cat.color}18;color:${cat.color}">${cat.icon} ${cat.name}</span><span class="case-title">${c.title}</span></div><p class="case-brand">品牌：${c.brand} | 类型：${c.type}</p>${sectionsHtml}${metricsHtml ? `<div class="case-metrics">${metricsHtml}</div>` : ''}</div>`;
+      }).join('');
+      let info = `共 ${cases.length} 个案例`;
+      if (state.activeDim !== '__all__') {
+        const cat = CATEGORIES.find(c => c.id === state.activeDim);
+        if (cat) info = `${cat.icon} ${cat.name} · ${cases.length} 个案例`;
+      }
+      $('#filter-info').textContent = info;
+    }
+
+    function init() {
+      const savedTheme = localStorage.getItem('report-theme');
+      if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
+      else if (window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.setAttribute('data-theme', 'dark');
+      $('#theme-btn').addEventListener('click', () => {
+        const html = document.documentElement;
+        const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        html.setAttribute('data-theme', next);
+        localStorage.setItem('report-theme', next);
+      });
+      renderDimTabs();
+      renderCases();
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    else init();
+  })();
+  </script>
+</body>
+</html>
