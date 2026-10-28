@@ -15769,6 +15769,44 @@ const REPORT_DATA = {
           category: 'emotion-economy'
         }
       ]
+    },
+    {
+      date: '2026-10-28',
+      title: '每日案例报告',
+      summary: '今日精选7大维度案例：📱AI 驱动汽车行业全域升级：数据基础设施重构与业务效能量化提升',
+      cases: [
+        {
+          title: 'AI 驱动汽车行业全域升级：数据基础设施重构与业务效能量化提升',
+          brand: '行业综合',
+          type: '数字化与内容生态标杆案例',
+          sections: [
+            {
+              label: '情境 (Situation)',
+              content: '腾讯云开发者社区｜2026-04'
+            },
+            {
+              label: '任务 (Task)',
+              content: '行业综合面临的核心挑战：腾讯云开发者社区｜2026-04。'
+            },
+            {
+              label: '行动 (Action)',
+              content: '① 腾讯云开发者社区｜2026-04\n② 中国汽车流通协会｜2026-09\n③ 微播易联合中国广告协会 / 广告门、简专家报告库｜2026-07 前后'
+            },
+            {
+              label: '结果 (Result)',
+              content: 'OFweek 新能源汽车/ 、2026-04-27'
+            }
+          ],
+          metrics: [
+            {
+              label: '规模(万辆)',
+              value: '700'
+            }
+          ],
+          id: '2026-10-28-digital-content',
+          category: 'digital-content'
+        }
+      ]
     }
   ]
 };
